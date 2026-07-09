@@ -1,9 +1,18 @@
 ################################################
+# Keil Build Output Directories
+################################################
+
+Software/**/MDK-ARM/Master/
+Software/**/MDK-ARM/Slave1/
+Software/**/MDK-ARM/Slave2/
+
+################################################
 # Keil MDK - User specific
 ################################################
 
 *.uvguix.*
 *.uvoptx
+*.scvd
 
 ################################################
 # Keil Build Output

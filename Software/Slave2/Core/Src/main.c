@@ -102,7 +102,7 @@ uint16_t voltage_mV_f[5]  = {0};
 // Computed factor = 3992.0 / 3975.0 = 1.004278
 /* Per-cell calibration factors (real / measured) - cell1 updated from measurement */
 /* Reset calibration factors to 1.0 for re-calibration start */
-float calib_factor[5] = {1.0342536f, 1.0135508f, 1.3042642f, 0.9725500f, 1.1813139f};
+float calib_factor[5] = {1.0185980f, 0.9935808f, 1.2533427f, 0.9935844f, 1.1745299f};
 /* calibration/results storage */
 
 /* ADC / divider constants */
