@@ -1168,7 +1168,8 @@ void Safety_Control(void)
    * If none apply, do not modify PB11 (leave to precharge or other logic).
    */
   if (any_gt_vchg) {
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET); /* inhibit charge */
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_SET); /* inhibit charge */
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
   } else if ((cur_mA > (int32_t)Idis_mA) || any_lt_vdis) {
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET); /* inhibit discharge */
   }
