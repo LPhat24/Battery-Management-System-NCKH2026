@@ -34,11 +34,8 @@ void lcd_send_data (char data)
 
 void lcd_clear (void)
 {
-	lcd_send_cmd (0x00);
-	for (int i=0; i<100; i++)
-	{
-		lcd_send_data (' ');
-	}
+	lcd_send_cmd (0x01);
+	HAL_Delay(2);
 }
 
 void lcd_init (void)

@@ -67,9 +67,10 @@
 #define CURRENT_SENSOR_DEADBAND_A 0.1f
 #define CURRENT_ADC_INDEX 4
 #define CURRENT_CALIB_SAMPLES 500
-/* Settings filter parameters */
-/* Moving-average window for settings ADC to reduce jitter */
-#define SETTINGS_MAVG_N 15U
+/* Fast setting filter: one update every main-loop cycle, approximately 80 ms time constant. */
+#define SETTINGS_FILTER_SHIFT 2U
+#define SETTINGS_DEADBAND_ADC 2U
+#define CELL_FILTER_SHIFT     2U
 
 /* Setting output ranges */
 #define ICHG_MAX_MA 11000U
@@ -157,16 +158,12 @@ volatile int32_t debug_current_adc_mv = 0;
 /* Computed zero (mV) for current sensor; can be updated by auto-calibration */
 volatile int32_t current_zero_mv = CURRENT_SENSOR_ZERO_DEFAULT_MV;
 
-/* Filtered ADC values for user-adjustable settings (0..ADC_MAX_VALUE) */
-/* Moving-average buffers and state for 4 setting channels */
+/* Filtered ADC values for user-adjustable settings (0..ADC_MAX_VALUE). */
 static uint16_t filtered_adc_ichg = 0;
 static uint16_t filtered_adc_vdis = 0;
 static uint16_t filtered_adc_vchg = 0;
 static uint16_t filtered_adc_idis = 0;
-static uint16_t settings_mavg_buf[4][SETTINGS_MAVG_N] = {{0}};
-static uint32_t settings_mavg_sum[4] = {0};
-static uint16_t settings_mavg_idx = 0;
-static uint16_t settings_mavg_count = 0;
+static uint8_t settings_filter_initialized = 0u;
 
 /* Runtime adjustable millivolt offset to match a reference measurement.
  * Default computed from a recent bench measurement: actual 1509mV vs measured 1451mV -> +58mV
@@ -179,6 +176,7 @@ AnalogInput Analog_In;
 #define TOTAL_CELLS 15
 
 uint16_t all_cell_voltage_mV[TOTAL_CELLS] = {0};
+static uint8_t cell_filter_initialized[TOTAL_CELLS] = {0};
 
 
 CAN_FilterTypeDef sFilterConfig;
@@ -213,6 +211,9 @@ uint16_t tmp_frameB_cell5[3];
 int16_t  tmp_frameB_temp_tenths[3];
 uint8_t  tmp_frameB_mask[3];
 
+#define CELL_VALID_MIN_MV 500U
+#define CELL_VALID_MAX_MV 5000U
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -245,6 +246,8 @@ void Safety_Control(void);
 void Master_Balance_Control(void);
 
 static void Update_Temperature_Max(void);
+static void LCD_WriteLine(uint8_t ddram_addr, const char *text);
+static void Update_Cell_Voltage_Filter(uint8_t cell_index, uint16_t sample_mV);
 
 void Check_Slave_Timeout(void);
 void Read_Digital_Input (void);
@@ -337,6 +340,30 @@ static void Update_Temperature_Max(void)
   }
 }
 
+static void LCD_WriteLine(uint8_t ddram_addr, const char *text)
+{
+  char line[21];
+
+  snprintf(line, sizeof(line), "%-20s", text);
+  lcd_send_cmd(0x80 | ddram_addr);
+  lcd_send_string(line);
+}
+
+static void Update_Cell_Voltage_Filter(uint8_t cell_index, uint16_t sample_mV)
+{
+  int32_t error;
+
+  if (!cell_filter_initialized[cell_index]) {
+    all_cell_voltage_mV[cell_index] = sample_mV;
+    cell_filter_initialized[cell_index] = 1u;
+    return;
+  }
+
+  error = (int32_t)sample_mV - (int32_t)all_cell_voltage_mV[cell_index];
+  all_cell_voltage_mV[cell_index] = (uint16_t)((int32_t)all_cell_voltage_mV[cell_index] +
+      (error >> CELL_FILTER_SHIFT));
+}
+
 
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
@@ -374,6 +401,14 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
       tmp_frameA_cells[idx][i] = (uint16_t)(RxData[2*i] | (RxData[2*i+1] << 8));
       if (tmp_frameA_cells[idx][i] > max_val) max_val = tmp_frameA_cells[idx][i];
     }
+    for (int i = 0; i < 4; i++) {
+      if (tmp_frameA_cells[idx][i] < CELL_VALID_MIN_MV ||
+          tmp_frameA_cells[idx][i] > CELL_VALID_MAX_MV) {
+        got_frameA[idx] = 0;
+        HAL_CAN_ActivateNotification(hcan, CAN_IT_RX_FIFO1_MSG_PENDING);
+        return;
+      }
+    }
     /* If values look 10x too large (e.g. 39990 instead of 3999), normalize */
     if (max_val > 15000) {
       for (int i = 0; i < 4; i++)
@@ -389,6 +424,13 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
     tmp_frameB_cell5[idx] = (uint16_t)(RxData[0] | (RxData[1] << 8));
     tmp_frameB_temp_tenths[idx] = (int16_t)(RxData[2] | (RxData[3] << 8));
     tmp_frameB_mask[idx] = RxData[4];
+
+    if (tmp_frameB_cell5[idx] < CELL_VALID_MIN_MV ||
+        tmp_frameB_cell5[idx] > CELL_VALID_MAX_MV) {
+      got_frameB[idx] = 0;
+      HAL_CAN_ActivateNotification(hcan, CAN_IT_RX_FIFO1_MSG_PENDING);
+      return;
+    }
 
     /* Update per-cell mosfet status */
     for (int i = 0; i < 5; i++)
@@ -406,8 +448,8 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
   /* If we've received both halves for this slave, assemble into final buffers */
   if (got_frameA[idx] && got_frameB[idx]) {
     for (int i = 0; i < 4; i++)
-      all_cell_voltage_mV[base + i] = tmp_frameA_cells[idx][i];
-    all_cell_voltage_mV[base + 4] = tmp_frameB_cell5[idx];
+      Update_Cell_Voltage_Filter((uint8_t)(base + i), tmp_frameA_cells[idx][i]);
+    Update_Cell_Voltage_Filter((uint8_t)(base + 4), tmp_frameB_cell5[idx]);
 
     /* reset assembly flags */
     got_frameA[idx] = 0;
@@ -535,13 +577,11 @@ int main(void)
     }
 
     static uint32_t lcd_tick = 0;
-    if (HAL_GetTick() - lcd_tick >= 500) {
+    uint32_t lcd_period_ms = Digital_In.SW_LCDMode ? 100U : 500U;
+    if (HAL_GetTick() - lcd_tick >= lcd_period_ms) {
         lcd_tick = HAL_GetTick();
         lcd_update_flag = 1;
     }
-
-    if (Digital_In.SW_LCDMode)
-        lcd_update_flag = 1;
 
     LCD_Update();
     HAL_Delay(20);
@@ -1013,8 +1053,10 @@ void Check_Slave_Timeout(void)
         if (slave_last_tick[s] > 0 &&
             (now - slave_last_tick[s]) > SLAVE_TIMEOUT_MS) {
             uint8_t base = s * 5;
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 5; i++) {
                 all_cell_voltage_mV[base + i] = 0;
+                cell_filter_initialized[base + i] = 0u;
+            }
             slave_temp[s]      = 0;
             slave_last_tick[s] = 0;
         }
@@ -1092,39 +1134,23 @@ void Read_Analog_Input (void) {
   Analog_In.ChargerVoltage = ADC_RawData [5];
   /* Update debug ADC/voltage for current sensor (PA4) */
   Current_Sensor_Calc();
-  /* Update settings moving-average buffers (sliding window) */
+  /* A fast EMA removes ADC noise without making adjustment feel delayed. */
   {
-    uint16_t raws[4];
-    raws[0] = Analog_In.Raw_I_Charge_Max;   /* Ichg */
-    raws[1] = Analog_In.Raw_V_Discharge_Min;/* Vdis */
-    raws[2] = Analog_In.Raw_V_Charge_Max;   /* Vchg */
-    raws[3] = Analog_In.Raw_I_Discharge_Max;/* Idis */
+    uint16_t *filtered[4] = {&filtered_adc_ichg, &filtered_adc_vdis,
+                              &filtered_adc_vchg, &filtered_adc_idis};
+    uint16_t raw[4] = {Analog_In.Raw_I_Charge_Max, Analog_In.Raw_V_Discharge_Min,
+                       Analog_In.Raw_V_Charge_Max, Analog_In.Raw_I_Discharge_Max};
 
-    for (int ch = 0; ch < 4; ++ch) {
-      uint16_t new = raws[ch];
-      if (settings_mavg_count < SETTINGS_MAVG_N) {
-        /* buffer not full: append */
-        settings_mavg_buf[ch][settings_mavg_idx] = new;
-        settings_mavg_sum[ch] += (uint32_t)new;
-      } else {
-        /* buffer full: replace oldest sample */
-        settings_mavg_sum[ch] -= (uint32_t)settings_mavg_buf[ch][settings_mavg_idx];
-        settings_mavg_buf[ch][settings_mavg_idx] = new;
-        settings_mavg_sum[ch] += (uint32_t)new;
-      }
+    for (uint8_t ch = 0; ch < 4; ch++) {
+      int32_t error = (int32_t)raw[ch] - (int32_t)*filtered[ch];
+      if (!settings_filter_initialized)
+        *filtered[ch] = raw[ch];
+      else if (error > (int32_t)SETTINGS_DEADBAND_ADC ||
+               error < -(int32_t)SETTINGS_DEADBAND_ADC)
+        *filtered[ch] = (uint16_t)((int32_t)*filtered[ch] +
+            (error >> SETTINGS_FILTER_SHIFT));
     }
-
-    /* advance circular index and count */
-    settings_mavg_idx = (uint16_t)((settings_mavg_idx + 1U) % SETTINGS_MAVG_N);
-    if (settings_mavg_count < SETTINGS_MAVG_N) ++settings_mavg_count;
-
-    /* compute filtered values (integer average) */
-    if (settings_mavg_count > 0) {
-      filtered_adc_ichg = (uint16_t)(settings_mavg_sum[0] / settings_mavg_count);
-      filtered_adc_vdis = (uint16_t)(settings_mavg_sum[1] / settings_mavg_count);
-      filtered_adc_vchg = (uint16_t)(settings_mavg_sum[2] / settings_mavg_count);
-      filtered_adc_idis = (uint16_t)(settings_mavg_sum[3] / settings_mavg_count);
-    }
+    settings_filter_initialized = 1u;
   }
 }
 
@@ -1384,48 +1410,39 @@ void LCD_Page1(void)
     int soc_whole_line = soc_tenths_line / 10;
     int soc_tenth_line = soc_tenths_line % 10;
     sprintf(DataLCD, "Vmax:%4lumV S:%3d.%1d%%", (unsigned long)Vmax_mV, soc_whole_line, soc_tenth_line);
-    lcd_send_cmd(0x80|0x54);
-    lcd_send_string(DataLCD);
+    LCD_WriteLine(0x54, DataLCD);
 }
 
 void LCD_Page2(void)
 {
     char buf[21];
     sprintf(buf, "C1:%4d C2:%4d", all_cell_voltage_mV[0], all_cell_voltage_mV[1]);
-    lcd_send_cmd(0x80|0x00);
-    lcd_send_string(buf);
+    LCD_WriteLine(0x00, buf);
 
     sprintf(buf, "C3:%4d C4:%4d", all_cell_voltage_mV[2], all_cell_voltage_mV[3]);
-    lcd_send_cmd(0x80|0x40);
-    lcd_send_string(buf);
+    LCD_WriteLine(0x40, buf);
 
     sprintf(buf, "C5:%4d C6:%4d", all_cell_voltage_mV[4], all_cell_voltage_mV[5]);
-    lcd_send_cmd(0x80|0x14);
-    lcd_send_string(buf);
+    LCD_WriteLine(0x14, buf);
 
     sprintf(buf, "C7:%4d C8:%4d", all_cell_voltage_mV[6], all_cell_voltage_mV[7]);
-    lcd_send_cmd(0x80|0x54);
-    lcd_send_string(buf);
+    LCD_WriteLine(0x54, buf);
 }
 
 void LCD_Page3(void)
 {
     char buf[21];
     sprintf(buf, "C9:%4d C10:%4d", all_cell_voltage_mV[8], all_cell_voltage_mV[9]);
-    lcd_send_cmd(0x80|0x00);
-    lcd_send_string(buf);
+    LCD_WriteLine(0x00, buf);
 
     sprintf(buf, "C11:%4d C12:%4d", all_cell_voltage_mV[10], all_cell_voltage_mV[11]);
-    lcd_send_cmd(0x80|0x40);
-    lcd_send_string(buf);
+    LCD_WriteLine(0x40, buf);
 
     sprintf(buf, "C13:%4d C14:%4d", all_cell_voltage_mV[12], all_cell_voltage_mV[13]);
-    lcd_send_cmd(0x80|0x14);
-    lcd_send_string(buf);
+    LCD_WriteLine(0x14, buf);
 
     sprintf(buf, "C15:%4d", all_cell_voltage_mV[14]);
-    lcd_send_cmd(0x80|0x54);
-    lcd_send_string(buf);
+    LCD_WriteLine(0x54, buf);
 }
 void LCD_Page4 (void) {
     char buf[21];
@@ -1485,6 +1502,7 @@ void LCD_Update () {
     static uint8_t last_page = LCD_PAGE_MAX;
     static uint8_t last_setting = 0;
 
+    /* The main loop schedules setting refreshes at 100 ms to avoid blocking I2C writes. */
     // Force update setting mode HOẶC khi có flag
     if (!lcd_update_flag && last_setting == Digital_In.SW_LCDMode) {
         // Trong setting mode, vẫn cần update liên tục để refresh ADC

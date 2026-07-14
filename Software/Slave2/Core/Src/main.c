@@ -59,7 +59,7 @@ TIM_HandleTypeDef htim2;
 
 volatile uint8_t balance_mask = 0x00; 
 
-volatile uint16_t adc_val[6];
+volatile uint16_t adc_val[7];
 volatile uint8_t  adc_ready = 0;
 volatile uint8_t  tim_flag  = 0;
 
@@ -67,13 +67,11 @@ float    temperature  = 0.0f;
 uint32_t ntc_ema      = 0;
 uint8_t  ntc_ema_init = 0;   
 
-uint16_t adc_buf[6];
+uint16_t adc_buf[7];
 
 uint16_t voltage_mV[5];
 uint16_t tapVolt[5];
 
-
-/* moving-average buffers removed (no filtering) */
 
 uint8_t bal_state[5] = {0};
 uint8_t temp_cutoff  = 0;
@@ -90,8 +88,7 @@ CAN_FilterTypeDef sFilterConfig;
 CAN_RxHeaderTypeDef RxHeader;
 uint8_t RxData[8];
 
-/* EMA buffers removed (no filtering) */
-uint16_t voltage_mV_f[5]  = {0};  
+uint16_t voltage_mV_f[5]  = {0};
 
 // Per-cell calibration factors (real / measured).
 // These were computed from a one-shot calibration and can be adjusted.
@@ -102,25 +99,24 @@ uint16_t voltage_mV_f[5]  = {0};
 // Computed factor = 3992.0 / 3975.0 = 1.004278
 /* Per-cell calibration factors (real / measured) - cell1 updated from measurement */
 /* Reset calibration factors to 1.0 for re-calibration start */
-float calib_factor[5] = {1.0183592f, 0.9952328f, 1.2535311f, 0.9963514f, 1.1682028f};
+//float calib_factor[5] = {1.0183592f, 0.9952328f, 1.2535311f, 0.9963514f, 1.1682028f};
+float calib_factor[5] = {0.9951468f, 0.9736467f, 1.2257775f, 0.9745480f, 1.1359331f};
+
 /* calibration/results storage */
 
 /* ADC / divider constants */
 #define ADC_MAX_VALUE        4095u
-#define ADC_CHANNEL_COUNT    6u
+#define ADC_CHANNEL_COUNT    7u
 #define CELL_COUNT           5u
-/* number of samples to average per channel */
-#define AVG_SAMPLE_COUNT     500u
-/* downsample factor: only accumulate every SAMPLE_SKIPth ADC-ready event */
-/* increase to reduce effective sampling rate */
+#define ADC_FILTER_SHIFT     4u
+#define CELL_FILTER_SHIFT    3u
 #define SAMPLE_SKIP          4u
-/* simple accumulators for AVG_SAMPLE_COUNT averaging */
-static uint32_t avg_sum[CELL_COUNT] = {0};
-static uint16_t avg_count[CELL_COUNT] = {0};
 static uint16_t last_avg_adc[CELL_COUNT] = {0};
+static uint8_t adc_filter_initialized = 0u;
+static uint8_t cell_filter_initialized = 0u;
 static uint16_t sample_skip_idx = 0;
-/* measured VREF on board in millivolts (3.3V rail actual) */
-static const uint32_t VREF_MV = 3300u; /* adjusted to 3.300V */
+static uint32_t adc_vdda_mv = 3300u;
+static const uint32_t VREFINT_MV = 1200u;
 
 /* Divider resistor values in ohms for each tap (R1 = top resistor, R2 = bottom to GND)
   Tap 1 = top of cell1, Tap 2 = top of cell2, ... Tap5 = top of cell5
@@ -149,7 +145,7 @@ static uint16_t adc_raw_to_tap_mv(uint16_t raw_adc, uint8_t tap_index)
 {
   /* convert ADC code to measured millivolts
      use measured VREF to reduce systematic error */
-  float v_adc_mv = ((float)raw_adc / (float)ADC_MAX_VALUE) * (float)VREF_MV;
+  float v_adc_mv = ((float)raw_adc * (float)adc_vdda_mv) / (float)ADC_MAX_VALUE;
 
   /* divider multiplier = (R1 + R2) / R2 */
   float mult = ((float)divider_R1[tap_index] + (float)divider_R2[tap_index]) / (float)divider_R2[tap_index];
@@ -158,6 +154,18 @@ static uint16_t adc_raw_to_tap_mv(uint16_t raw_adc, uint8_t tap_index)
   if (tap_mv < 0.0f) tap_mv = 0.0f;
   if (tap_mv > 65535.0f) tap_mv = 65535.0f;
   return (uint16_t)(tap_mv + 0.5f);
+}
+
+static void update_adc_vdda_from_vrefint(uint16_t raw_vrefint)
+{
+  if (raw_vrefint == 0u)
+    return;
+
+  uint32_t new_vdda_mv = (uint32_t)(((uint64_t)VREFINT_MV * (uint64_t)ADC_MAX_VALUE) / (uint64_t)raw_vrefint);
+  if (new_vdda_mv < 2500u || new_vdda_mv > 3600u)
+    return;
+
+  adc_vdda_mv = (adc_vdda_mv * 7u + new_vdda_mv) / 8u;
 }
       
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
@@ -203,13 +211,20 @@ void calcCellVolt(void)
 
 void filterVoltage(void)
 {
-  /* No filtering: apply only the 0..500mV deadzone rule */
-  for (int i = 0; i < CELL_COUNT; i++) {
-    if (voltage_mV[i] < 500u)
+  for (uint8_t i = 0; i < CELL_COUNT; i++) {
+    if (voltage_mV[i] < 500u) {
       voltage_mV_f[i] = 0u;
-    else
+      continue;
+    }
+
+    if (!cell_filter_initialized) {
       voltage_mV_f[i] = voltage_mV[i];
+    } else {
+      int32_t error = (int32_t)voltage_mV[i] - (int32_t)voltage_mV_f[i];
+      voltage_mV_f[i] = (uint16_t)((int32_t)voltage_mV_f[i] + (error >> CELL_FILTER_SHIFT));
+    }
   }
+  cell_filter_initialized = 1u;
 }
 
 float NTC_GetTemperature(uint16_t adc_value)
@@ -219,8 +234,9 @@ float NTC_GetTemperature(uint16_t adc_value)
         return -273.15f; 
     }
 
-    float voltage = (float)adc_value * 3.3f / 4095.0f;
-    float r_ntc = 10000.0f * (3.3f - voltage) / voltage;
+    float vdda = (float)adc_vdda_mv / 1000.0f;
+    float voltage = (float)adc_value * vdda / 4095.0f;
+    float r_ntc = 10000.0f * (vdda - voltage) / voltage;
 
     float A = 0.001129148f;
     float B = 0.000234125f;
@@ -358,7 +374,9 @@ int main(void)
   MX_CAN_Init();
   /* USER CODE BEGIN 2 */
 
-	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_val, 6);
+  ADC1->CR2 |= ADC_CR2_TSVREFE;
+  HAL_Delay(1);
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_val, ADC_CHANNEL_COUNT);
 	HAL_TIM_Base_Start_IT(&htim2);
 	
 	HAL_CAN_Start(&hcan);
@@ -390,23 +408,23 @@ int main(void)
     /* USER CODE BEGIN 3 */
    if (adc_ready) {
     __disable_irq();
-    for (int i = 0; i < 6; i++)
+    for (int i = 0; i < ADC_CHANNEL_COUNT; i++)
         adc_buf[i] = adc_val[i];
     adc_ready = 0;
     __enable_irq();
-  /* downsample: only accumulate every SAMPLE_SKIPth ADC-ready event */
-  sample_skip_idx = (sample_skip_idx + 1) % SAMPLE_SKIP;
-  if (sample_skip_idx == 0) {
-    for (uint8_t i = 0; i < CELL_COUNT; i++) {
-      avg_sum[i] += adc_buf[i];
-      avg_count[i]++;
-      if (avg_count[i] >= AVG_SAMPLE_COUNT) {
-        last_avg_adc[i] = (uint16_t)(avg_sum[i] / AVG_SAMPLE_COUNT);
-        avg_sum[i] = 0;
-        avg_count[i] = 0;
-      }
-    }
-  }
+  update_adc_vdda_from_vrefint(adc_buf[6]);
+  /* Low-pass each tap continuously; unlike block averaging it cannot step. */
+   sample_skip_idx = (sample_skip_idx + 1) % SAMPLE_SKIP;
+   if (sample_skip_idx == 0) {
+     for (uint8_t i = 0; i < CELL_COUNT; i++) {
+       if (!adc_filter_initialized)
+         last_avg_adc[i] = adc_buf[i];
+       else
+         last_avg_adc[i] = (uint16_t)((int32_t)last_avg_adc[i] +
+             (((int32_t)adc_buf[i] - (int32_t)last_avg_adc[i]) >> ADC_FILTER_SHIFT));
+     }
+     adc_filter_initialized = 1u;
+   }
 
   }
 
@@ -553,7 +571,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 6;
+  hadc1.Init.NbrOfConversion = ADC_CHANNEL_COUNT;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
     Error_Handler();
@@ -609,6 +627,16 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_6;
   sConfig.Rank = ADC_REGULAR_RANK_6;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_VREFINT;
+  sConfig.Rank = ADC_REGULAR_RANK_7;
+  sConfig.SamplingTime = ADC_SAMPLETIME_239CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
