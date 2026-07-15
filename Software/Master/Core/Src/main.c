@@ -1,5 +1,5 @@
 /* USER CODE BEGIN Header */
-/** HAHA-HIHI--HUHU
+/** LE THANH PHAT
   ******************************************************************************
   * @file           : main.c
   * @brief          : Main program body
@@ -68,7 +68,7 @@
 #define CURRENT_ADC_INDEX 4
 #define CURRENT_CALIB_SAMPLES 500
 /* Fast setting filter: one update every main-loop cycle, approximately 80 ms time constant. */
-#define SETTINGS_FILTER_SHIFT 2U
+#define SETTINGS_FILTER_SHIFT 3U
 #define SETTINGS_DEADBAND_ADC 2U
 #define CELL_FILTER_SHIFT     2U
 
@@ -1470,7 +1470,10 @@ void LCD_Page4 (void) {
 void LCD_PageSetting (void) {
     char buf[21];
 
-    // BỎ static setting_last - Luôn cập nhật mỗi lần gọi!
+    static uint16_t last_ichg = 0xFFFF;
+    static uint16_t last_vdis = 0xFFFF;
+    static uint16_t last_vchg = 0xFFFF;
+    static uint16_t last_idis = 0xFFFF;
 
     /* Use filtered ADC values to reduce jitter while keeping responsiveness */
     uint16_t Ichg = map(filtered_adc_ichg, 0, ADC_MAX_VALUE, 0, ICHG_MAX_MA);
@@ -1478,25 +1481,33 @@ void LCD_PageSetting (void) {
     uint16_t Vchg = map(filtered_adc_vchg, 0, ADC_MAX_VALUE, 0, VCHG_MAX_MV);
     uint16_t Idis = map(filtered_adc_idis, 0, ADC_MAX_VALUE, 0, IDIS_MAX_MA);
 
-    // Dòng 1
-    sprintf(buf, "Ichg_max:%4dmA    ", Ichg);
-    lcd_send_cmd(0x80|0x00);
-    lcd_send_string(buf);
+    if (Ichg != last_ichg) {
+        last_ichg = Ichg;
+        sprintf(buf, "Ichg_max:%4dmA    ", Ichg);
+        lcd_send_cmd(0x80|0x00);
+        lcd_send_string(buf);
+    }
 
-    // Dòng 2
-    sprintf(buf, "Vdis_min:%4dmV    ", Vdis);
-    lcd_send_cmd(0x80|0x40);
-    lcd_send_string(buf);
+    if (Vdis != last_vdis) {
+        last_vdis = Vdis;
+        sprintf(buf, "Vdis_min:%4dmV    ", Vdis);
+        lcd_send_cmd(0x80|0x40);
+        lcd_send_string(buf);
+    }
 
-    // Dòng 3
-    sprintf(buf, "Vchg_max:%4dmV    ", Vchg);
-    lcd_send_cmd(0x80|0x14);
-    lcd_send_string(buf);
+    if (Vchg != last_vchg) {
+        last_vchg = Vchg;
+        sprintf(buf, "Vchg_max:%4dmV    ", Vchg);
+        lcd_send_cmd(0x80|0x14);
+        lcd_send_string(buf);
+    }
 
-    // Dòng 4
-    sprintf(buf, "Idis_max:%5dmA    ", Idis);
-    lcd_send_cmd(0x80|0x54);
-    lcd_send_string(buf);
+    if (Idis != last_idis) {
+        last_idis = Idis;
+        sprintf(buf, "Idis_max:%5dmA    ", Idis);
+        lcd_send_cmd(0x80|0x54);
+        lcd_send_string(buf);
+    }
 }
 void LCD_Update () {
     static uint8_t last_page = LCD_PAGE_MAX;

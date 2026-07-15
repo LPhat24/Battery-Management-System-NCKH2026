@@ -1,0 +1,48 @@
+# Build artifacts (Keil MDK-ARM)
+**/MDK-ARM/**/*.o
+**/MDK-ARM/**/*.axf
+**/MDK-ARM/**/*.elf
+**/MDK-ARM/**/*.hex
+**/MDK-ARM/**/*.bin
+**/MDK-ARM/**/*.map
+**/MDK-ARM/**/*.lst
+**/MDK-ARM/**/*.d
+**/MDK-ARM/**/*.crf
+**/MDK-ARM/**/*.htm
+**/MDK-ARM/**/Objects/**
+**/MDK-ARM/**/Listings/**
+**/MDK-ARM/**/*.bak
+
+# CubeMX generated / HAL / CMSIS drivers (boilerplate, rarely need to read)
+**/Drivers/**
+**/Middlewares/**
+
+# RTE (Run-Time Environment) generated
+**/RTE/**
+**/RTE_Components.h
+**/RTE_Components.c
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs / temp
+*.log
+*.tmp
+*.temp
+
+# Documentation (optional - uncomment if you want to ignore)
+# *.pdf
+# *.docx
+# *.html
+
+# LabVIEW / MATLAB build outputs (if any)
+LabVIEW/**/build*/
+MATLAB*/**/build*/
