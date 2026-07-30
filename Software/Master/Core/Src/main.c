@@ -35,6 +35,10 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+#define FAN_TEMP_ON_THRESHOLD  27.5f
+#define Fan_Control_Pin        GPIO_PIN_5
+#define Fan_Control_GPIO_Port  GPIOB
+
 #define CAN_ID_SLAVE1_TX        0x101U
 #define CAN_ID_SLAVE2_TX        0x102U
 #define CAN_ID_SLAVE3_TX        0x103U
@@ -90,6 +94,7 @@ typedef struct {
 	uint8_t SW_LCDMode;
 	uint8_t SW_Load;
 	uint8_t CurrentDigital;
+	uint8_t ChargeState;
 } DigitalInput;
 
 typedef struct {
@@ -97,7 +102,6 @@ typedef struct {
 	uint16_t Raw_V_Discharge_Min;
 	uint16_t Raw_I_Charge_Max;
 	uint16_t Raw_V_Charge_Max;
-	uint16_t ChargerVoltage;
 } AnalogInput;
 
 typedef enum {
@@ -136,8 +140,6 @@ CAN_HandleTypeDef hcan;
 
 I2C_HandleTypeDef hi2c1;
 
-TIM_HandleTypeDef htim3;
-
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
@@ -148,7 +150,7 @@ CAN_TxHeaderTypeDef TxHeader_Bal;
 uint32_t            TxMailbox_Bal;
 uint8_t             TxData_Bal[8]      = {0};
 
-uint16_t ADC_RawData[6];
+uint16_t ADC_RawData[5];
 DigitalInput Digital_In;
 /* Debug variables for current sensor ADC (PA4) */
 volatile uint16_t debug_current_adc_raw = 0;
@@ -223,7 +225,6 @@ static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_CAN_Init(void);
 static void MX_I2C1_Init(void);
-static void MX_TIM3_Init(void);
 static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -264,6 +265,7 @@ void LCD_Page4 (void);
 void LCD_PageSetting (void);
 void LCD_Update(void);
 void Precharge_Handle(void);
+void Fan_Control(void);
 
 /* SOC estimation API: returns tenths of percent (0..1000) */
 uint16_t Compute_SOC_TenthsPercent(void);
@@ -499,7 +501,6 @@ int main(void)
   MX_ADC1_Init();
   MX_CAN_Init();
   MX_I2C1_Init();
-  MX_TIM3_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 	
@@ -508,12 +509,9 @@ int main(void)
 	TxHeader_Bal.RTR = CAN_RTR_DATA;
   TxHeader_Bal.StdId = CAN_ID_SLAVE1_RX; 
 
-  HAL_ADC_Start_DMA(&hadc1, (uint32_t*) ADC_RawData, 6);
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t*) ADC_RawData, 5);
   /* Start a brief auto-calibration for current sensor zero point */
   CurrentSensor_AutoCalibrate();
-
-    HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
 
   HAL_CAN_Start(&hcan);
 
@@ -559,6 +557,7 @@ int main(void)
     /* Enforce charge/discharge safety after analog/settings update */
     Safety_Control();
     Check_Slave_Timeout();
+    Fan_Control();
 
     if (new_can_data) {
         new_can_data = 0;
@@ -665,7 +664,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 6;
+  hadc1.Init.NbrOfConversion = 5;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
     Error_Handler();
@@ -712,15 +711,7 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_4;
   sConfig.Rank = ADC_REGULAR_RANK_5;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Regular Channel
-  */
-  sConfig.Channel = ADC_CHANNEL_5;
-  sConfig.Rank = ADC_REGULAR_RANK_6;
+  sConfig.SamplingTime = ADC_SAMPLETIME_71CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -803,67 +794,6 @@ static void MX_I2C1_Init(void)
 }
 
 /**
-  * @brief TIM3 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM3_Init(void)
-{
-
-  /* USER CODE BEGIN TIM3_Init 0 */
-
-  /* USER CODE END TIM3_Init 0 */
-
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
-
-  /* USER CODE BEGIN TIM3_Init 1 */
-
-  /* USER CODE END TIM3_Init 1 */
-  htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 0;
-  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 65535;
-  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM3_Init 2 */
-
-  /* USER CODE END TIM3_Init 2 */
-  HAL_TIM_MspPostInit(&htim3);
-
-}
-
-/**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
@@ -901,15 +831,12 @@ static void MX_USART1_UART_Init(void)
   */
 static void MX_DMA_Init(void)
 {
-
   /* DMA controller clock enable */
   __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
-  /* DMA1_Channel1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
-
 }
 
 /**
@@ -934,7 +861,8 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_14|GPIO_PIN_15, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1|GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_14
+                          |GPIO_PIN_15|GPIO_PIN_5, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : PC13 */
   GPIO_InitStruct.Pin = GPIO_PIN_13;
@@ -949,21 +877,23 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB10 PB11 PB14 PB15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_14|GPIO_PIN_15;
+  /*Configure GPIO pins : PA5 PA8 PA15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_8|GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PB1 PB10 PB11 PB14
+                           PB15 PB5 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_14
+                          |GPIO_PIN_15|GPIO_PIN_5;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA8 PA15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_15;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PB3 PB4 PB5 */
-  GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5;
+  /*Configure GPIO pins : PB3 PB4 */
+  GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_4;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
@@ -1076,37 +1006,35 @@ void Precharge_Handle(void)
         case PRECHARGE_IDLE:
             if (Digital_In.SW_Load)
             {
-                // Bật precharge relay
-                HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
-                HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+                HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1,  GPIO_PIN_SET);
+                HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
+                HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
 
                 precharge_timer = HAL_GetTick();
                 precharge_state = PRECHARGE_ACTIVE;
             }
             else
             {
-                // Tắt hết nếu không bật balance
+                HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1,  GPIO_PIN_RESET);
                 HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
                 HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
             }
             break;
 
         case PRECHARGE_ACTIVE:
-            // Chờ đủ 5s
-            if (HAL_GetTick() - precharge_timer >= 5000)
+            if (HAL_GetTick() - precharge_timer >= 3000)
             {
-                // Tắt precharge, bật discharge
-                HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
-                HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
+                HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1,  GPIO_PIN_RESET);
+                HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
 
                 precharge_state = PRECHARGE_DONE;
             }
             break;
 
         case PRECHARGE_DONE:
-            // Nếu tắt balance → reset toàn bộ
             if (!Digital_In.SW_Load)
             {
+                HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1,  GPIO_PIN_RESET);
                 HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
                 HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
 
@@ -1124,6 +1052,8 @@ void Read_Digital_Input (void) {
 
 	Digital_In.SW_LCDMode =     !HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_14);
 	Digital_In.SW_Load =        !HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_15);
+
+	Digital_In.ChargeState = !HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_5);
 }
 void Read_Analog_Input (void) {
   Analog_In.Raw_I_Charge_Max = ADC_RawData [0];
@@ -1131,7 +1061,6 @@ void Read_Analog_Input (void) {
   Analog_In.Raw_V_Charge_Max =    ADC_RawData [2];
   Analog_In.Raw_I_Discharge_Max = ADC_RawData [3];
 
-  Analog_In.ChargerVoltage = ADC_RawData [5];
   /* Update debug ADC/voltage for current sensor (PA4) */
   Current_Sensor_Calc();
   /* A fast EMA removes ADC noise without making adjustment feel delayed. */
@@ -1154,32 +1083,19 @@ void Read_Analog_Input (void) {
   }
 }
 
-/* Safety control: set PB14/PB11 according to current and cell voltages
- * - PB14 HIGH: disconnect charge when current < -Ichg
- * - PB11 LOW : disconnect discharge when current > Idis or any cell < Vdis (ignore cells <=500mV)
- * - PB11 HIGH: disconnect charge when any cell > Vchg
- * When no condition holds for PB11, leave pin unchanged to avoid fighting other logic.
+/* Safety control: set PB14, PB1, PB10, PB11 according to current and cell voltages
+ * - PB14 HIGH: disconnect charge when current < -Ichg or any cell > Vchg
+ * - PB1/PB10/PB11 LOW: disconnect discharge+precharge when any fault occurs
  */
 void Safety_Control(void)
 {
   int32_t cur_mA = CurrentSensor_Get_mA();
 
-  /* Map filtered ADC settings to engineering units */
   uint32_t Ichg_mA = (uint32_t)map(filtered_adc_ichg, 0, ADC_MAX_VALUE, 0, ICHG_MAX_MA);
   uint32_t Vdis_mV = (uint32_t)map(filtered_adc_vdis, 0, ADC_MAX_VALUE, 0, VDIS_MAX_MV);
   uint32_t Vchg_mV = (uint32_t)map(filtered_adc_vchg, 0, ADC_MAX_VALUE, 0, VCHG_MAX_MV);
   uint32_t Idis_mA = (uint32_t)map(filtered_adc_idis, 0, ADC_MAX_VALUE, 0, IDIS_MAX_MA);
 
-  /* PB14: charge inhibit (active HIGH) if charging current exceeds Ichg (negative current)
-   * Set HIGH to disconnect charge, otherwise drive LOW to allow charge.
-   */
-  if (cur_mA < -(int32_t)Ichg_mA) {
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_SET);
-  } else {
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
-  }
-
-  /* Evaluate cell voltage conditions (ignore cells <= 500 mV for under-voltage check) */
   bool any_gt_vchg = false;
   bool any_lt_vdis = false;
   for (int i = 0; i < TOTAL_CELLS; ++i) {
@@ -1188,17 +1104,28 @@ void Safety_Control(void)
     if (v > 500U && v < Vdis_mV) any_lt_vdis = true;
   }
 
-  /* PB11: used for both charge and discharge inhibit
-   * Priority: cell over-voltage -> inhibit charge (PB11 HIGH)
-   * then current/discharge under-voltage -> inhibit discharge (PB11 LOW)
-   * If none apply, do not modify PB11 (leave to precharge or other logic).
-   */
-  if (any_gt_vchg) {
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_SET); /* inhibit charge */
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
-  } else if ((cur_mA > (int32_t)Idis_mA) || any_lt_vdis) {
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET); /* inhibit discharge */
+  /* PB14: charge inhibit (active HIGH) */
+  if ((Digital_In.ChargeState && cur_mA < -(int32_t)Ichg_mA) || any_gt_vchg) {
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_SET);
+  } else {
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
   }
+
+  /* Fault: cut all control pins on overvoltage, undervoltage, or overcurrent */
+  if (any_gt_vchg || any_lt_vdis || (cur_mA > (int32_t)Idis_mA)) {
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1,  GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+  }
+}
+
+void Fan_Control(void)
+{
+    if (temperature_max >= FAN_TEMP_ON_THRESHOLD) {
+        HAL_GPIO_WritePin(Fan_Control_GPIO_Port, Fan_Control_Pin, GPIO_PIN_SET);
+    } else {
+        HAL_GPIO_WritePin(Fan_Control_GPIO_Port, Fan_Control_Pin, GPIO_PIN_RESET);
+    }
 }
 
 /* Read PA4 raw ADC value from DMA buffer and compute millivolts for debug */

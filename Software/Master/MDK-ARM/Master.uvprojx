@@ -394,6 +394,11 @@
           <GroupName>Application/User/Core</GroupName>
           <Files>
             <File>
+              <FileName>i2c-lcd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\i2c-lcd.c</FilePath>
+            </File>
+            <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Core/Src/main.c</FilePath>
@@ -407,11 +412,6 @@
               <FileName>stm32f1xx_hal_msp.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Core/Src/stm32f1xx_hal_msp.c</FilePath>
-            </File>
-            <File>
-              <FileName>i2c-lcd.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Core\Src\i2c-lcd.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -492,16 +492,6 @@
               <FileName>stm32f1xx_hal_i2c.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_i2c.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32f1xx_hal_tim.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32f1xx_hal_tim_ex.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim_ex.c</FilePath>
             </File>
             <File>
               <FileName>stm32f1xx_hal_uart.c</FileName>
