@@ -1,0 +1,801 @@
+{
+  "uuid": "d5262a3c038b7a3ee37ea9a941d3b209",
+  "path": "Offline/PCB_VIP_Master BMS 2026",
+  "name": "PCB_VIP_Master BMS 2026",
+  "content": "",
+  "created_at": "2026-07-15 12:50:36",
+  "updated_at": "2026-07-22 14:32:25",
+  "stick": "",
+  "documents": [
+    {
+      "uuid": "05434cea3e94a9567d4872df4bb65fcc",
+      "title": "Sheet_1",
+      "description": "",
+      "docType": "1",
+      "master": "",
+      "thumb": "/images/thumb-default.png",
+      "components": {
+        "8c7e0bf7cf2c4af2b9a75a7913e1125f": 5,
+        "5bb797349d684665a3b33009571ff3b6": 1,
+        "29f6cf7e9b82447b81907e190f250df1": 1,
+        "a9b8498ec6464e66a2be57181047a5ad": 1,
+        "89517beaab5e4e88972ab8eac7a9ac72": 1,
+        "aca2740c2c514dbf98cb490533497957": 33,
+        "359d637acf074a29a33f0049b9c7a52f": 11,
+        "3fba49e7ef5a4160b112c7abf28edefa": 2,
+        "9a3fb7510ee54df7a9e031ebef2ddd2f": 2,
+        "6086aeff0761416bb49782122fb8310f": 1,
+        "7c5126a909f240afa5cb75cd52e03125": 5,
+        "315733dc9845443aa436bae6d6e449ec": 8,
+        "a2c7c7677a374b19acabe99ddfbed76b": 1,
+        "0812606bb0fe4703bd54f5d8e9d30a04": 1,
+        "64b30e17ca9a4d97bc55d0095b519ab4": 2,
+        "1edaf801c596401f9d3ec4f6c86fb767": 5,
+        "9b796e50d61e4cddadf56aa53ae9e500": 4,
+        "676ffdb85f294888ad863eb3e175a8be": 1,
+        "52ab515cb79b46d0ba02446cb8ef8204": 1,
+        "423dc1182c964a8f3537ce59469b0811": 2,
+        "5b58447eba594cbc9c25be9f05987f2c": 6,
+        "5bf7964d4acb41a78fce5b845f1e7d87": 1,
+        "2136fccdbd134a5a9a82366e6666fe20": 1,
+        "31bcc58c964e4edba0c6dc159a3e4275": 2,
+        "36912acabaef4861b0cbc126ec0927e0": 1,
+        "4ee4d19d2fc14edba9ff364f6a97924e": 4
+      },
+      "BOM": [
+        [
+          "Value",
+          "Quantity",
+          "Package",
+          "Components",
+          "CustomPara"
+        ],
+        [
+          "BUZZER-12X9",
+          1,
+          "BUZ-TH_BD12.0-P7.60-D0.6-FD",
+          "BZ1",
+          {
+            "Manufacturer Part": "buzzer-12X9",
+            "Manufacturer": "null",
+            "Supplier": "LCSC",
+            "Supplier Part": "C9900016920"
+          }
+        ],
+        [
+          "1000uF",
+          2,
+          "CAP-SMD_BD12.5-L13.0-W13.0-LS14.0-FD",
+          "C3,C4",
+          {
+            "Manufacturer Part": "XT1000UF25V90RV0154",
+            "Manufacturer": "KNSCHA(科尼盛)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C5138964"
+          }
+        ],
+        [
+          "SS54_SMB",
+          5,
+          "SMB_L4.3-W3.6-LS5.4-RD",
+          "D1,D2,D3,D4,D10",
+          {
+            "Manufacturer Part": "SS54",
+            "Manufacturer": "HXY MOSFET(华轩阳电子)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C5200096"
+          }
+        ],
+        [
+          "1N4007",
+          4,
+          "SMA_L4.4-W2.8-LS5.4-RD",
+          "D5,D7,D8,D9",
+          {
+            "Manufacturer Part": "1N4007",
+            "Manufacturer": "SHIKUES(时科)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C126233"
+          }
+        ],
+        [
+          "SS510",
+          1,
+          "SMC_L6.9-W5.9-LS7.9-RD",
+          "D6",
+          {
+            "Manufacturer Part": "SS510SMC",
+            "Manufacturer": "BORN(伯恩半导体)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C511859"
+          }
+        ],
+        [
+          "BLX-A-B",
+          1,
+          "FUSE-TH_BLX-A-B",
+          "F1",
+          {
+            "Manufacturer Part": "BLX-A-B",
+            "Manufacturer": "XFCN(兴飞)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C41371862"
+          }
+        ],
+        [
+          "3MM_HOLE",
+          4,
+          "PKG-SCREW-MOUNTING-HOLE-3MM",
+          "H1,H2,H3,H4",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ],
+        [
+          "KF1000-2P",
+          5,
+          "CONN-TH_KF1000-2P",
+          "J1,J5,J15,J16,J17",
+          {
+            "Manufacturer Part": "KF1000-2P",
+            "Manufacturer": "null",
+            "Supplier": "LCSC",
+            "Supplier Part": "C9900149030"
+          }
+        ],
+        [
+          "XH2.54",
+          13,
+          "CONN-TH_2P-P2.54_ZX-XH2.54-2PZZ-Y",
+          "J2,J3,J4,J6,J7,J8,J9,J11,J12,J13,J14,J18,J19",
+          {
+            "Manufacturer Part": "ZX-XH2.54-2PZZ-Y",
+            "Manufacturer": "Megastar(兆星)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C22388684"
+          }
+        ],
+        [
+          "Male",
+          3,
+          "HDR-TH_2P-P2.54-V-M-3",
+          "J20,J21,J22",
+          {
+            "Manufacturer Part": "HX PZ2.54-1x2P ZZ",
+            "Manufacturer": "hanxia(韩下)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C32713268"
+          }
+        ],
+        [
+          "SRA-05VDC-CL",
+          2,
+          "RELAY-TH_SRA-X-CX",
+          "K1,K2",
+          {
+            "Manufacturer Part": "SRA-05VDC-CL",
+            "Manufacturer": "松乐",
+            "Supplier": "LCSC",
+            "Supplier Part": "C99666"
+          }
+        ],
+        [
+          "SLA-12VDC-SL-A",
+          2,
+          "RELAY-TH_SLA-XXVDC-XL-A",
+          "K3,K4",
+          {
+            "Manufacturer Part": "SLA-12VDC-SL-A",
+            "Manufacturer": "松乐",
+            "Supplier": "LCSC",
+            "Supplier Part": "C55194"
+          }
+        ],
+        [
+          "RED 1206",
+          6,
+          "LED1206-RD",
+          "LD1,LD6,LD8,LD9,LD10,LD11",
+          {
+            "Manufacturer Part": "TJ-S3216EX9T5ALC2R-A5",
+            "Manufacturer": "TOGIALED(统佳)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C48689667"
+          }
+        ],
+        [
+          "GREEN 1206",
+          2,
+          "LED1206-RD",
+          "LD2,LD7",
+          {
+            "Manufacturer Part": "TJ-S3216EX9T5ALC2R-A5",
+            "Manufacturer": "TOGIALED(统佳)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C48689667"
+          }
+        ],
+        [
+          "ORANGE 1206",
+          3,
+          "LED1206-RD",
+          "LD3,LD4,LD5",
+          {
+            "Manufacturer Part": "TJ-S3216EX9T5ALC2R-A5",
+            "Manufacturer": "TOGIALED(统佳)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C48689667"
+          }
+        ],
+        [
+          "STM32F103C8T6",
+          1,
+          "CONN-TH_L53.3-W22.9_STM32F103C8T6-CARD",
+          "M1",
+          {
+            "Manufacturer Part": "LCKFB-DKX-STM32F103C8T6",
+            "Manufacturer": "立创开发板",
+            "Supplier": "LCSC",
+            "Supplier Part": "C22396880"
+          }
+        ],
+        [
+          "PC817C",
+          6,
+          "SOP-4_L6.5-W4.6-P2.54-LS10.2-TL",
+          "O1,O2,O3,O4,O5,O6",
+          {
+            "Manufacturer Part": "PC817C",
+            "Manufacturer": "JSMSEMI(杰盛微)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C22447129"
+          }
+        ],
+        [
+          "2SC1815",
+          5,
+          "SOT-23-3_L2.9-W1.3-P0.95-LS2.4-BR",
+          "Q1,Q2,Q3,Q4,Q6",
+          {
+            "Manufacturer Part": "2SC1815",
+            "Manufacturer": "MSKSEMI(美森科)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C2914411"
+          }
+        ],
+        [
+          "IRLML0030TR",
+          1,
+          "SOT-23-3_L2.9-W1.3-P0.95-LS2.4-BR",
+          "Q5",
+          {
+            "Manufacturer Part": "IRLML0030TRPBF-G",
+            "Manufacturer": "TECH PUBLIC(台舟)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C7603368"
+          }
+        ],
+        [
+          "1kΩ/0.25W",
+          6,
+          "R1206",
+          "R1,R8,R18,R23,R27,R33",
+          {
+            "Manufacturer Part": "HoAR1206-1/4W-1KR-1%-TCR50",
+            "Manufacturer": "Milliohm(毫欧)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C2912605"
+          }
+        ],
+        [
+          "560Ω/0.25W",
+          3,
+          "R1206",
+          "R2,R3,R5",
+          {
+            "Manufacturer Part": "HoAR1206-1/4W-1KR-1%-TCR50",
+            "Manufacturer": "Milliohm(毫欧)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C2912605"
+          }
+        ],
+        [
+          "330Ω/0.25W",
+          11,
+          "R1206",
+          "R4,R6,R7,R16,R17,R21,R22,R25,R26,R29,R30",
+          {
+            "Manufacturer Part": "HoAR1206-1/4W-1KR-1%-TCR50",
+            "Manufacturer": "Milliohm(毫欧)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C2912605"
+          }
+        ],
+        [
+          "10kΩ/0.25W",
+          12,
+          "R1206",
+          "R9,R10,R11,R12,R13,R14,R15,R19,R24,R28,R32,R34",
+          {
+            "Manufacturer Part": "HoAR1206-1/4W-1KR-1%-TCR50",
+            "Manufacturer": "Milliohm(毫欧)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C2912605"
+          }
+        ],
+        [
+          "100Ω/10W",
+          1,
+          "DAYTON AUDIO 4.7 OHM 10W PRECISION AUDIO GRADE RESISTOR",
+          "R20",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "Parts Express",
+            "Supplier Part": "004-4.7"
+          }
+        ],
+        [
+          "100Ω/0.25W",
+          1,
+          "R1206",
+          "R31",
+          {
+            "Manufacturer Part": "HoAR1206-1/4W-1KR-1%-TCR50",
+            "Manufacturer": "Milliohm(毫欧)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C2912605"
+          }
+        ],
+        [
+          "MP2307DN",
+          1,
+          "MP2307DN_DC_DC_DOWN",
+          "U1",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ],
+        [
+          "TJA1050",
+          1,
+          "CANBUSTJA1050",
+          "U2",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ]
+      ],
+      "updateTime": 1784624283,
+      "createTime": 1784094636,
+      "histories": [],
+      "created_at": "2026-07-15 12:50:36",
+      "updated_at": "2026-07-21 15:58:03"
+    },
+    {
+      "uuid": "e973e2280b4adad1ad8c7841e287d295",
+      "puuid": "d5262a3c038b7a3ee37ea9a941d3b209",
+      "title": "PCB_PCB_VIP_Master BMS 2026",
+      "filename": "PCB_PCB_VIP_Master BMS 2026.json",
+      "description": "",
+      "docType": "3",
+      "master": "",
+      "thumb": "/images/thumb-default.png",
+      "components": {
+        "44f4239726ed4ebd893f67f419e4b55b": 5,
+        "9275fb41c0064223b77db30e06cb1bfe": 4,
+        "dd68e74c2f514068818084c5b689e19e": 6,
+        "8e9b1be4bcb6420dbd1d09bf04b02792": 33,
+        "e656abc767e048bd87fc55924255013b": 1,
+        "4937126739894c52921de221c4760bbc": 1,
+        "f8c1ebf52f6c45d3819557830c88dbc7": 2,
+        "daf4d1416438448d92b779dfd37f40c1": 1,
+        "3639eca6b4b44c218ac5d72b7accf2a1": 1,
+        "2fc43b455a224676acef8959847d927e": 5,
+        "f8610078af0f4d8d85c24d7f02f16466": 1,
+        "4b726cc418924ba2b113f2b24c1e4f4b": 2,
+        "cd3bdfa363e54a4f87ca99360039bc06": 8,
+        "5e2608f833974860b5e88e8ee2f41d1b": 1,
+        "3723af872cdc4ab381e63da9682066c7": 1,
+        "c1e7930568a246c7aca1be33bf9ee5d4": 1,
+        "d8ab81c31f294d2da4cb9751a61dbd65": 2,
+        "b2d0adc541ed43be8566a5b26a46efc6": 2,
+        "3f21a2531f5a413d88c730f61daca683": 11,
+        "77534d8154e848a1a01d4c9c3c95520e": 1,
+        "7a1f10afe25d4d4faef9897cc06b92a9": 6,
+        "77291c1ee4c8421fa121536d81557eae": 1,
+        "17244819ac2d41909b157d7ece8bffef": 1,
+        "557158869b04402dae23fcbf532a6e80": 2,
+        "759eb680f57a4dfe80050f83788e5c7b": 4
+      },
+      "BOM": [
+        [
+          "Value",
+          "Quantity",
+          "Package",
+          "Components",
+          "CustomPara"
+        ],
+        [
+          "BUZZER-12X9",
+          1,
+          "BUZ-TH_BD12.0-P7.60-D0.6-FD",
+          "BZ1",
+          {
+            "Manufacturer Part": "buzzer-12X9",
+            "Manufacturer": "null",
+            "Supplier": "LCSC",
+            "Supplier Part": "C9900016920"
+          }
+        ],
+        [
+          "1000uF",
+          2,
+          "CAP-SMD_BD12.5-L13.0-W13.0-LS14.0-FD",
+          "C3,C4",
+          {
+            "Manufacturer Part": "XT1000UF25V90RV0154",
+            "Manufacturer": "KNSCHA(科尼盛)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C5138964"
+          }
+        ],
+        [
+          "SS54_SMB",
+          5,
+          "SMB_L4.3-W3.6-LS5.4-RD",
+          "D1,D2,D3,D4,D10",
+          {
+            "Manufacturer Part": "SS54",
+            "Manufacturer": "HXY MOSFET(华轩阳电子)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C5200096"
+          }
+        ],
+        [
+          "1N4007",
+          4,
+          "SMA_L4.4-W2.8-LS5.4-RD",
+          "D5,D7,D8,D9",
+          {
+            "Manufacturer Part": "1N4007",
+            "Manufacturer": "SHIKUES(时科)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C126233"
+          }
+        ],
+        [
+          "SS510",
+          1,
+          "SMC_L6.9-W5.9-LS7.9-RD",
+          "D6",
+          {
+            "Manufacturer Part": "SS510SMC",
+            "Manufacturer": "BORN(伯恩半导体)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C511859"
+          }
+        ],
+        [
+          "BLX-A-B",
+          1,
+          "FUSE-TH_BLX-A-B",
+          "F1",
+          {
+            "Manufacturer Part": "BLX-A-B",
+            "Manufacturer": "XFCN(兴飞)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C41371862"
+          }
+        ],
+        [
+          "KF1000-2P",
+          5,
+          "CONN-TH_KF1000-2P",
+          "J1,J5,J15,J16,J17",
+          {
+            "Manufacturer Part": "KF1000-2P",
+            "Manufacturer": "null",
+            "Supplier": "LCSC",
+            "Supplier Part": "C9900149030"
+          }
+        ],
+        [
+          "XH2.54",
+          1,
+          "CONN-TH_2P-P2.54_ZX-XH2.54-2PZZ-Y",
+          "J2",
+          {
+            "Manufacturer Part": "ZX-XH2.54-2PZZ-Y",
+            "Manufacturer": "Megastar(兆星)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C22388684"
+          }
+        ],
+        [
+          "XH2.54",
+          2,
+          "CONN-TH_4P-P2.50_4PIN",
+          "J3,J4",
+          {
+            "Manufacturer Part": "ZX-XH2.54-4PZZ",
+            "Manufacturer": "Megastar(兆星)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C7429634"
+          }
+        ],
+        [
+          "XH2.54",
+          9,
+          "CONN-TH_2P-P2.50_HX25003-2A",
+          "J6,J7,J8,J9,J10,J12,J13,J18,J19",
+          {
+            "Manufacturer Part": "ZX-XH2.54-2PZZ",
+            "Manufacturer": "Megastar(兆星)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C7429632"
+          }
+        ],
+        [
+          "XH2.54",
+          1,
+          "CONN-TH_5P-P2.50_ZX-XH2.54-5PZZ",
+          "J11",
+          {
+            "Manufacturer Part": "ZX-XH2.54-5PZZ",
+            "Manufacturer": "Megastar(兆星)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C7429635"
+          }
+        ],
+        [
+          "XH2.54",
+          1,
+          "CONN-TH_6P-P2.50_ZX-XH2.54-6PZZ",
+          "J14",
+          {
+            "Manufacturer Part": "ZX-XH2.54-6PZZ",
+            "Manufacturer": "Megastar(兆星)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C7429636"
+          }
+        ],
+        [
+          "Male",
+          1,
+          "HDR-TH_2P-P2.54-V-M-3",
+          "J20",
+          {
+            "Manufacturer Part": "HX PZ2.54-1x2P ZZ",
+            "Manufacturer": "hanxia(韩下)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C32713268"
+          }
+        ],
+        [
+          "SRA-05VDC-CL",
+          2,
+          "RELAY-TH_SRA-X-CX",
+          "K1,K2",
+          {
+            "Manufacturer Part": "SRA-05VDC-CL",
+            "Manufacturer": "松乐",
+            "Supplier": "LCSC",
+            "Supplier Part": "C99666"
+          }
+        ],
+        [
+          "SLA-12VDC-SL-A",
+          2,
+          "RELAY-TH_SLA-XXVDC-XL-A",
+          "K3,K4",
+          {
+            "Manufacturer Part": "SLA-12VDC-SL-A",
+            "Manufacturer": "松乐",
+            "Supplier": "LCSC",
+            "Supplier Part": "C55194"
+          }
+        ],
+        [
+          "RED 1206",
+          6,
+          "LED1206-RD",
+          "LD1,LD6,LD8,LD9,LD10,LD11",
+          {
+            "Manufacturer Part": "TJ-S3216EX9T5ALC2R-A5",
+            "Manufacturer": "TOGIALED(统佳)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C48689667"
+          }
+        ],
+        [
+          "GREEN 1206",
+          2,
+          "LED1206-RD",
+          "LD2,LD7",
+          {
+            "Manufacturer Part": "TJ-S3216EX9T5ALC2R-A5",
+            "Manufacturer": "TOGIALED(统佳)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C48689667"
+          }
+        ],
+        [
+          "ORANGE 1206",
+          3,
+          "LED1206-RD",
+          "LD3,LD4,LD5",
+          {
+            "Manufacturer Part": "TJ-S3216EX9T5ALC2R-A5",
+            "Manufacturer": "TOGIALED(统佳)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C48689667"
+          }
+        ],
+        [
+          "STM32F103C8T6",
+          1,
+          "CONN-TH_L53.3-W22.9_STM32F103C8T6-CARD",
+          "M1",
+          {
+            "Manufacturer Part": "LCKFB-DKX-STM32F103C8T6",
+            "Manufacturer": "立创开发板",
+            "Supplier": "LCSC",
+            "Supplier Part": "C22396880"
+          }
+        ],
+        [
+          "PC817C",
+          6,
+          "SOP-4_L6.5-W4.6-P2.54-LS10.2-TL",
+          "O1,O2,O3,O4,O5,O6",
+          {
+            "Manufacturer Part": "PC817C",
+            "Manufacturer": "JSMSEMI(杰盛微)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C22447129"
+          }
+        ],
+        [
+          "2SC1815",
+          5,
+          "SOT-23-3_L2.9-W1.3-P0.95-LS2.4-BR",
+          "Q1,Q2,Q3,Q4,Q6",
+          {
+            "Manufacturer Part": "2SC1815",
+            "Manufacturer": "MSKSEMI(美森科)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C2914411"
+          }
+        ],
+        [
+          "IRLML0030TR",
+          1,
+          "SOT-23-3_L2.9-W1.3-P0.95-LS2.4-BR",
+          "Q5",
+          {
+            "Manufacturer Part": "IRLML0030TRPBF-G",
+            "Manufacturer": "TECH PUBLIC(台舟)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C7603368"
+          }
+        ],
+        [
+          "1kΩ/0.25W",
+          6,
+          "R1206",
+          "R1,R8,R18,R23,R27,R33",
+          {
+            "Manufacturer Part": "HoAR1206-1/4W-1KR-1%-TCR50",
+            "Manufacturer": "Milliohm(毫欧)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C2912605"
+          }
+        ],
+        [
+          "560Ω/0.25W",
+          3,
+          "R1206",
+          "R2,R3,R5",
+          {
+            "Manufacturer Part": "HoAR1206-1/4W-1KR-1%-TCR50",
+            "Manufacturer": "Milliohm(毫欧)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C2912605"
+          }
+        ],
+        [
+          "330Ω/0.25W",
+          11,
+          "R1206",
+          "R4,R6,R7,R16,R17,R21,R22,R25,R26,R29,R30",
+          {
+            "Manufacturer Part": "HoAR1206-1/4W-1KR-1%-TCR50",
+            "Manufacturer": "Milliohm(毫欧)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C2912605"
+          }
+        ],
+        [
+          "10kΩ/0.25W",
+          12,
+          "R1206",
+          "R9,R10,R11,R12,R13,R14,R15,R19,R24,R28,R32,R34",
+          {
+            "Manufacturer Part": "HoAR1206-1/4W-1KR-1%-TCR50",
+            "Manufacturer": "Milliohm(毫欧)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C2912605"
+          }
+        ],
+        [
+          "100Ω/0.25W",
+          1,
+          "R1206",
+          "R31",
+          {
+            "Manufacturer Part": "HoAR1206-1/4W-1KR-1%-TCR50",
+            "Manufacturer": "Milliohm(毫欧)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C2912605"
+          }
+        ],
+        [
+          "100Ω/10W",
+          1,
+          "DAYTON AUDIO 4.7 OHM 10W PRECISION AUDIO GRADE RESISTOR",
+          "R20",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "Parts Express",
+            "Supplier Part": "004-4.7"
+          }
+        ],
+        [
+          "MP2307DN",
+          1,
+          "MP2307DN_DC_DC_DOWN",
+          "U1",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ],
+        [
+          "TJA1050",
+          1,
+          "CANBUSTJA1050",
+          "U2",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ]
+      ],
+      "updateTime": 1784705545,
+      "createTime": 1784538125,
+      "histories": [],
+      "created_at": "2026-07-20 16:02:05",
+      "updated_at": "2026-07-22 14:32:25"
+    }
+  ],
+  "sort": [],
+  "title": "PCB_VIP_Master BMS 2026",
+  "foldername": "PCB_VIP_Master BMS 2026",
+  "schfilename": "PCB_VIP_Master BMS 2026.json",
+  "schfilemtime": 1784624283696
+}
