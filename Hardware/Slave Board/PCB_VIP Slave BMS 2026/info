@@ -1,0 +1,824 @@
+{
+  "uuid": "06150288b52874a3455f5a249404a894",
+  "path": "Offline/PCB_VIP Slave BMS 2026",
+  "name": "PCB_VIP Slave BMS 2026",
+  "content": "",
+  "created_at": "2026-07-31 08:28:06",
+  "updated_at": "2026-07-31 08:28:45",
+  "stick": "",
+  "documents": [
+    {
+      "uuid": "c868bf0de8b2467939556a7b13188ca1",
+      "title": "Sheet_1",
+      "description": "",
+      "docType": "1",
+      "master": "",
+      "thumb": "/images/thumb-default.png",
+      "components": {
+        "36912acabaef4861b0cbc126ec0927e0": 1,
+        "c27da593184647439c61df7263a3f455": 1,
+        "e989f175710e403b91beb975b9f918b5": 1,
+        "f3c1d943bf1c43ffae55ac8c780d44ed": 1,
+        "c4d50ca50da34bc3bdd649005f07e484": 12,
+        "aca2740c2c514dbf98cb490533497957": 11,
+        "21686f3a4aa84fc09230b30b3a29cdeb": 5,
+        "94b86aa9f5324f87b8840cf4f71aa264": 5,
+        "bf417f51375c490f900a9644903834ac": 9,
+        "b1d77982f774453fb71bde193ef563cf": 1,
+        "4f29953675c64ceaa00b91832a415f0a": 1,
+        "c65873ca04444f6bb25d6c02ddb7191f": 1,
+        "746fa1b4575e418da6f85d7dfdaae6c5": 6,
+        "f1f03d2bf2a84e67b40f4cc1a4859650": 2,
+        "32825e9965d5497aa6d10eabd32658fd": 2,
+        "01bd575349c6493b8a9561b2f0f55d8e": 2,
+        "b3763100e0824b89a830d0540dcb637d": 1,
+        "7004403ea38949ffbcd34366166c1c48": 1,
+        "a9dba5027fda47dfaed7f85158d00adb": 5,
+        "53d0f23024ac4240b053262edc798f3e": 5,
+        "16c30a08feab4500803de6cce2349b4c": 3,
+        "39244adfe277434484cd7fab6fe41746": 1,
+        "8291d326dd7377d025fa72b5827a3a92": 3,
+        "750c9b17c7004748bad8fb02ceb7707b": 5,
+        "f101b49ae22e4d13b90f08b9a4fe6970": 1,
+        "b9ff8e0add1741a6a181b3a35ee25cdd": 1,
+        "44edac0757f3432e9bd6a66857afd81c": 1,
+        "680549f40cdb47ff8ad525012545863d": 1,
+        "4ee4d19d2fc14edba9ff364f6a97924e": 4,
+        "45ddbab4559a43c6bc95d2ca22fb25a0": 1
+      },
+      "BOM": [
+        [
+          "Value",
+          "Quantity",
+          "Package",
+          "Components",
+          "CustomPara"
+        ],
+        [
+          "100nF",
+          9,
+          "C0805",
+          "C1,C2,C3,C4,C5,C6,C7,C9,C11",
+          {
+            "Manufacturer Part": "CC0805X7R50V104KN",
+            "Manufacturer": "TORCH(火炬)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C53084450"
+          }
+        ],
+        [
+          "1000uF",
+          1,
+          "CAPACITOR 1000UF SMD",
+          "C8",
+          {
+            "Manufacturer Part": "VE-102M1CTR-1010",
+            "Manufacturer": "Lelon(立隆)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C249474"
+          }
+        ],
+        [
+          "47uF",
+          3,
+          "CAP-SMD_L6.0-W3.2-R-RD",
+          "C10,C12,C13",
+          {
+            "Manufacturer Part": "TAJC476K016RNJ",
+            "Manufacturer": "Kyocera AVX",
+            "Supplier": "LCSC",
+            "Supplier Part": "C7219"
+          }
+        ],
+        [
+          "XH-2.54-6P",
+          1,
+          "CONN-TH_6P-P2.5-HX-XH2.54-6PZZ-B",
+          "CN1",
+          {
+            "Manufacturer Part": "SH-XH2.54-6PZZ",
+            "Manufacturer": "SHOU HAN(首韩)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C42372649"
+          }
+        ],
+        [
+          "1N5819",
+          1,
+          "DO-214AC_L4.3-W2.7-LS5.3-RD",
+          "D1",
+          {
+            "Manufacturer Part": "1N5819(嘉立创)",
+            "Manufacturer": "null",
+            "Supplier": "LCSC",
+            "Supplier Part": "C489138"
+          }
+        ],
+        [
+          "SS34",
+          1,
+          "SMA_L4.3-W2.6-LS5.2-RD",
+          "D2",
+          {
+            "Manufacturer Part": "SS34",
+            "Manufacturer": "KEXIN(科信)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C489140"
+          }
+        ],
+        [
+          "1808 SMD FUSE",
+          1,
+          "FUSE-SMD_L9.7-W5.0",
+          "F1",
+          {
+            "Manufacturer Part": "1808 SMD Fuseholder",
+            "Manufacturer": "null",
+            "Supplier": "LCSC",
+            "Supplier Part": "C9900157015"
+          }
+        ],
+        [
+          "0805L050WR",
+          1,
+          "R0805",
+          "F2",
+          {
+            "Manufacturer Part": "0805L050WR",
+            "Manufacturer": "Littelfuse(美国力特)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C207022"
+          }
+        ],
+        [
+          "3MM_HOLE",
+          4,
+          "PKG-SCREW-MOUNTING-HOLE-3MM",
+          "J5,J6,J7,J8",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ],
+        [
+          "LM2596S",
+          1,
+          "LM2596S",
+          "L1",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ],
+        [
+          "LEDORANGE",
+          5,
+          "LED0805-R-RD_GREEN",
+          "LED1,LED2,LED3,LED4,LED5",
+          {
+            "Manufacturer Part": "LEDGREEN0805",
+            "Manufacturer": "null",
+            "Supplier": "LCSC",
+            "Supplier Part": "C9900013047"
+          }
+        ],
+        [
+          "LEDGREEN",
+          3,
+          "LED0805-R-RD_GREEN",
+          "LED6,LED7,LED9",
+          {
+            "Manufacturer Part": "LEDGREEN0805",
+            "Manufacturer": "null",
+            "Supplier": "LCSC",
+            "Supplier Part": "C9900013047"
+          }
+        ],
+        [
+          "LEDBLUE",
+          1,
+          "LED0805-BLUE",
+          "LED8",
+          {
+            "Manufacturer Part": "MHT170CRCT",
+            "Manufacturer": "MEIHUA",
+            "Supplier": "LCSC",
+            "Supplier Part": "C389525"
+          }
+        ],
+        [
+          "AO3400A",
+          5,
+          "SOT-23-3_L2.9-W1.3-P1.90-LS2.4-BR",
+          "Q1,Q2,Q3,Q4,Q5",
+          {
+            "Manufacturer Part": "AO3400A",
+            "Manufacturer": "AOS",
+            "Supplier": "LCSC",
+            "Supplier Part": "C20917"
+          }
+        ],
+        [
+          "330Ω",
+          12,
+          "R1206",
+          "R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R21,R25",
+          {
+            "Manufacturer Part": "RMC12063301%N",
+            "Manufacturer": "Tyohm(幸亚电阻)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C269589"
+          }
+        ],
+        [
+          "10kΩ",
+          6,
+          "R1206",
+          "R11,R13,R15,R17,R19,R23",
+          {
+            "Manufacturer Part": "RC1206FR-0710KL",
+            "Manufacturer": "YAGEO(国巨)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C132649"
+          }
+        ],
+        [
+          "1kΩ",
+          11,
+          "R1206",
+          "R12,R14,R16,R18,R20,R22,R27,R28,R29,R30,R31",
+          {
+            "Manufacturer Part": "HoAR1206-1/4W-1KR-1%-TCR50",
+            "Manufacturer": "Milliohm(毫欧)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C2912605"
+          }
+        ],
+        [
+          "220Ω",
+          1,
+          "R1206",
+          "R24",
+          {
+            "Manufacturer Part": "CR1206F42200G",
+            "Manufacturer": "LIZ(丽智电子)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C102128"
+          }
+        ],
+        [
+          "4.7kΩ",
+          1,
+          "R1206",
+          "R26",
+          {
+            "Manufacturer Part": "RMC12064.7K1%N",
+            "Manufacturer": "Tyohm(幸亚电阻)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C269592"
+          }
+        ],
+        [
+          "100kΩ",
+          6,
+          "R1206",
+          "R50,R51,R52,R53,R54,R55",
+          {
+            "Manufacturer Part": "RMC1206100K1%N",
+            "Manufacturer": "Tyohm(幸亚电阻)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C269765"
+          }
+        ],
+        [
+          "200kΩ",
+          2,
+          "R1206",
+          "R56,R59",
+          {
+            "Manufacturer Part": "RMC1206200K1%N",
+            "Manufacturer": "Tyohm(幸亚电阻)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C325910"
+          }
+        ],
+        [
+          "300kΩ",
+          2,
+          "R1206",
+          "R57,R58",
+          {
+            "Manufacturer Part": "RMC1206300K1%N",
+            "Manufacturer": "Tyohm(幸亚电阻)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C325943"
+          }
+        ],
+        [
+          "560kΩ",
+          2,
+          "R1206",
+          "R60,R61",
+          {
+            "Manufacturer Part": "RT1206FRE07560KL",
+            "Manufacturer": "YAGEO(国巨)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C706454"
+          }
+        ],
+        [
+          "22Ω",
+          5,
+          "R2512",
+          "R101,R102,R103,R104,R105",
+          {
+            "Manufacturer Part": "CRGP2512F22R",
+            "Manufacturer": "TE Connectivity(泰科电子)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C4002769"
+          }
+        ],
+        [
+          "PC817C",
+          5,
+          "SOP-4_L6.5-W4.6-P2.54-LS10.2-BL",
+          "U1,U2,U3,U4,U5",
+          {
+            "Manufacturer Part": "PC817CS",
+            "Manufacturer": "AOTE(奥特)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C20612591"
+          }
+        ],
+        [
+          "STM32F103C8T6",
+          1,
+          "CONN-TH_L53.3-W22.9_STM32F103C8T6-CARD",
+          "U6",
+          {
+            "Manufacturer Part": "LCKFB-DKX-STM32F103C8T6",
+            "Manufacturer": "立创开发板",
+            "Supplier": "LCSC",
+            "Supplier Part": "C22396880"
+          }
+        ],
+        [
+          "KF301-5.0-2P",
+          1,
+          "CONN-TH_P5.00_KF301-5.0-2P",
+          "U7",
+          {
+            "Manufacturer Part": "KF301-5.0-2P",
+            "Manufacturer": "KEFA(科发)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C474881"
+          }
+        ],
+        [
+          "XH-2P-2.54",
+          1,
+          "CONN-TH_2P-P2.50-XH2.54-2P",
+          "U10",
+          {
+            "Manufacturer Part": "XH-2P-2.54",
+            "Manufacturer": "null",
+            "Supplier": "LCSC",
+            "Supplier Part": "C9900003929"
+          }
+        ],
+        [
+          "TJA1050",
+          1,
+          "TJA1050",
+          "U13",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": "TJA1050_MODULE"
+          }
+        ]
+      ],
+      "updateTime": 1785461286,
+      "createTime": 1785461286,
+      "histories": [],
+      "created_at": "2026-07-31 08:28:06",
+      "updated_at": "2026-07-31 08:28:06"
+    },
+    {
+      "uuid": "62bc1ce483198f649534a914e8b56a7e",
+      "puuid": "06150288b52874a3455f5a249404a894",
+      "title": "Layout PCB_VIP Slave BMS 2026",
+      "filename": "Layout PCB_VIP Slave BMS 2026.json",
+      "description": "",
+      "docType": "3",
+      "master": "",
+      "thumb": "/images/thumb-default.png",
+      "components": {
+        "759eb680f57a4dfe80050f83788e5c7b": 4,
+        "c444d117946441c3ab8b7492a6a9cd72": 1,
+        "f2643a45518047fcb9531234883f5966": 1,
+        "4a47988680e447c8894e77015d333e2a": 1,
+        "e6194fb4e00e434295e110adefa0d85a": 1,
+        "8e9b1be4bcb6420dbd1d09bf04b02792": 43,
+        "fb95bdea7e4c47178f8936f7bcf0994e": 5,
+        "1670bcb78f2440219f037c7f698ffb89": 5,
+        "b8fddb749d784eccb60a4acb65c94dfc": 1,
+        "274d3a834133464397cbe50138cc0149": 1,
+        "77534d8154e848a1a01d4c9c3c95520e": 1,
+        "39107debf5de42419cf68eef8a2650ca": 1,
+        "b7243d11a5f04fb7894887aaa3569585": 1,
+        "bade90667a6e4731855e9a223387b8a6": 5,
+        "2a4e7183c3704694960849254619c081": 8,
+        "219f3c4c0f5c4292b73c2adcac4e182e": 1,
+        "2ee8eb13a0124a108e622ce40c0c25a8": 9,
+        "c0c7344cd18e42619ef64de8cf6bb271": 3,
+        "b60f399a7a7e41848b2be1eb49c79141": 1,
+        "719e77466b9a45aa8f9550a93f6695ed": 1
+      },
+      "BOM": [
+        [
+          "Value",
+          "Quantity",
+          "Package",
+          "Components",
+          "CustomPara"
+        ],
+        [
+          "3MM_HOLE",
+          4,
+          "PKG-SCREW-MOUNTING-HOLE-3MM",
+          "J5,J6,J7,J8",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ],
+        [
+          "KF301-5.0-2P",
+          1,
+          "CONN-TH_P5.00_KF301-5.0-2P",
+          "U7",
+          {
+            "Manufacturer Part": "KF301-5.0-2P",
+            "Manufacturer": "KEFA(科发)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C474881"
+          }
+        ],
+        [
+          "1808 SMD FUSE",
+          1,
+          "FUSE-SMD_L9.7-W5.0",
+          "F1",
+          {
+            "Manufacturer Part": "1808 SMD Fuseholder",
+            "Manufacturer": "null",
+            "Supplier": "LCSC",
+            "Supplier Part": "C9900157015"
+          }
+        ],
+        [
+          "LEDBLUE",
+          1,
+          "LED0805-BLUE",
+          "LED8",
+          {
+            "Manufacturer Part": "MHT170CRCT",
+            "Manufacturer": "MEIHUA",
+            "Supplier": "LCSC",
+            "Supplier Part": "C389525"
+          }
+        ],
+        [
+          "XH-2.54-6P",
+          1,
+          "CONN-TH_6P-P2.5-HX-XH2.54-6PZZ-B",
+          "CN1",
+          {
+            "Manufacturer Part": "SH-XH2.54-6PZZ",
+            "Manufacturer": "SHOU HAN(首韩)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C42372649"
+          }
+        ],
+        [
+          "220Ω",
+          1,
+          "R1206",
+          "R24",
+          {
+            "Manufacturer Part": "CR1206F42200G",
+            "Manufacturer": "LIZ(丽智电子)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C102128"
+          }
+        ],
+        [
+          "4.7kΩ",
+          1,
+          "R1206",
+          "R26",
+          {
+            "Manufacturer Part": "RMC12064.7K1%N",
+            "Manufacturer": "Tyohm(幸亚电阻)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C269592"
+          }
+        ],
+        [
+          "22Ω",
+          5,
+          "R2512",
+          "R101,R102,R103,R104,R105",
+          {
+            "Manufacturer Part": "CRGP2512F22R",
+            "Manufacturer": "TE Connectivity(泰科电子)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C4002769"
+          }
+        ],
+        [
+          "PC817C",
+          5,
+          "SOP-4_L6.5-W4.6-P2.54-LS10.2-BL",
+          "U1,U2,U4,U5,U3",
+          {
+            "Manufacturer Part": "PC817CS",
+            "Manufacturer": "AOTE(奥特)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C20612591"
+          }
+        ],
+        [
+          "XH-2P-2.54",
+          1,
+          "CONN-TH_2P-P2.50-XH2.54-2P",
+          "U10",
+          {
+            "Manufacturer Part": "XH-2P-2.54",
+            "Manufacturer": "null",
+            "Supplier": "LCSC",
+            "Supplier Part": "C9900003929"
+          }
+        ],
+        [
+          "TJA1050",
+          1,
+          "TJA1050",
+          "U13",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": "TJA1050_MODULE"
+          }
+        ],
+        [
+          "STM32F103C8T6",
+          1,
+          "CONN-TH_L53.3-W22.9_STM32F103C8T6-CARD",
+          "U6",
+          {
+            "Manufacturer Part": "LCKFB-DKX-STM32F103C8T6",
+            "Manufacturer": "立创开发板",
+            "Supplier": "LCSC",
+            "Supplier Part": "C22396880"
+          }
+        ],
+        [
+          "1000uF",
+          1,
+          "CAPACITOR 1000UF SMD",
+          "C8",
+          {
+            "Manufacturer Part": "VE-102M1CTR-1010",
+            "Manufacturer": "Lelon(立隆)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C249474"
+          }
+        ],
+        [
+          "SS34",
+          1,
+          "SMA_L4.3-W2.6-LS5.2-RD",
+          "D2",
+          {
+            "Manufacturer Part": "SS34",
+            "Manufacturer": "KEXIN(科信)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C489140"
+          }
+        ],
+        [
+          "10kΩ",
+          1,
+          "R1206",
+          "R23",
+          {
+            "Manufacturer Part": "RMC120610K1%N",
+            "Manufacturer": "Tyohm(幸亚电阻)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C269766"
+          }
+        ],
+        [
+          "AO3400A",
+          5,
+          "SOT-23-3_L2.9-W1.3-P1.90-LS2.4-BR",
+          "Q1,Q2,Q3,Q4,Q5",
+          {
+            "Manufacturer Part": "AO3400A",
+            "Manufacturer": "AOS",
+            "Supplier": "LCSC",
+            "Supplier Part": "C20917"
+          }
+        ],
+        [
+          "LEDORANGE",
+          5,
+          "LED0805-R-RD_GREEN",
+          "LED1,LED2,LED3,LED4,LED5",
+          {
+            "Manufacturer Part": "LEDGREEN0805",
+            "Manufacturer": "null",
+            "Supplier": "LCSC",
+            "Supplier Part": "C9900013047"
+          }
+        ],
+        [
+          "LEDGREEN",
+          3,
+          "LED0805-R-RD_GREEN",
+          "LED6,LED7,LED9",
+          {
+            "Manufacturer Part": "LEDGREEN0805",
+            "Manufacturer": "null",
+            "Supplier": "LCSC",
+            "Supplier Part": "C9900013047"
+          }
+        ],
+        [
+          "LM2596S",
+          1,
+          "LM2596S",
+          "L1",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ],
+        [
+          "1kΩ",
+          11,
+          "R1206",
+          "R27,R28,R29,R30,R31,R12,R14,R16,R18,R20,R22",
+          {
+            "Manufacturer Part": "HoAR1206-1/4W-1KR-1%-TCR50",
+            "Manufacturer": "Milliohm(毫欧)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C2912605"
+          }
+        ],
+        [
+          "100kΩ",
+          6,
+          "R1206",
+          "R50,R51,R52,R53,R54,R55",
+          {
+            "Manufacturer Part": "RMC1206100K1%N",
+            "Manufacturer": "Tyohm(幸亚电阻)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C269765"
+          }
+        ],
+        [
+          "200kΩ",
+          2,
+          "R1206",
+          "R56,R59",
+          {
+            "Manufacturer Part": "RMC1206200K1%N",
+            "Manufacturer": "Tyohm(幸亚电阻)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C325910"
+          }
+        ],
+        [
+          "300kΩ",
+          2,
+          "R1206",
+          "R57,R58",
+          {
+            "Manufacturer Part": "RMC1206300K1%N",
+            "Manufacturer": "Tyohm(幸亚电阻)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C325943"
+          }
+        ],
+        [
+          "560kΩ",
+          2,
+          "R1206",
+          "R60,R61",
+          {
+            "Manufacturer Part": "RT1206FRE07560KL",
+            "Manufacturer": "YAGEO(国巨)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C706454"
+          }
+        ],
+        [
+          "100nF",
+          9,
+          "C0805",
+          "C1,C2,C3,C4,C5,C6,C7,C9,C11",
+          {
+            "Manufacturer Part": "CC0805X7R50V104KN",
+            "Manufacturer": "TORCH(火炬)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C53084450"
+          }
+        ],
+        [
+          "330Ω",
+          12,
+          "R1206",
+          "R2,R3,R4,R5,R6,R7,R8,R9,R10,R1,R21,R25",
+          {
+            "Manufacturer Part": "RMC12063301%N",
+            "Manufacturer": "Tyohm(幸亚电阻)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C269589"
+          }
+        ],
+        [
+          "10kΩ",
+          5,
+          "R1206",
+          "R11,R13,R15,R17,R19",
+          {
+            "Manufacturer Part": "RC1206FR-0710KL",
+            "Manufacturer": "YAGEO(国巨)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C132649"
+          }
+        ],
+        [
+          "47uF",
+          3,
+          "CAP-SMD_L6.0-W3.2-R-RD",
+          "C12,C10,C13",
+          {
+            "Manufacturer Part": "TAJC476K016RNJ",
+            "Manufacturer": "Kyocera AVX",
+            "Supplier": "LCSC",
+            "Supplier Part": "C7219"
+          }
+        ],
+        [
+          "0805L050WR",
+          1,
+          "R0805",
+          "F2",
+          {
+            "Manufacturer Part": "0805L050WR",
+            "Manufacturer": "Littelfuse(美国力特)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C207022"
+          }
+        ],
+        [
+          "1N5819",
+          1,
+          "DO-214AC_L4.3-W2.7-LS5.3-RD",
+          "D1",
+          {
+            "Manufacturer Part": "1N5819(嘉立创)",
+            "Manufacturer": "null",
+            "Supplier": "LCSC",
+            "Supplier Part": "C489138"
+          }
+        ]
+      ],
+      "updateTime": 1785461325,
+      "createTime": 1785461325,
+      "histories": [],
+      "created_at": "2026-07-31 08:28:45",
+      "updated_at": "2026-07-31 08:28:45"
+    }
+  ],
+  "sort": [],
+  "title": "PCB_VIP Slave BMS 2026",
+  "foldername": "PCB_VIP Slave BMS 2026",
+  "schfilename": "PCB_VIP Slave BMS 2026.json",
+  "schfilemtime": 1785461286275
+}
