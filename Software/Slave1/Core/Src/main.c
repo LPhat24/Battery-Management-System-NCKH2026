@@ -33,6 +33,13 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+#define CAN_ID_SLAVE1_TX        0x101U
+#define CAN_ID_SLAVE2_TX        0x102U
+#define CAN_ID_SLAVE3_TX        0x103U
+#define CAN_ID_SLAVE1_RX        0x200U
+#define CAN_ID_SLAVE2_RX        0x201U
+#define CAN_ID_SLAVE3_RX        0x202U
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -321,7 +328,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData);
 
     // Slave 1: 0x200 | Slave 2: 0x201 | Slave 3: 0x202
-    if (RxHeader.StdId == 0x200) { 
+    if (RxHeader.StdId == CAN_ID_SLAVE1_RX) { 
         balance_enable = RxData[0] & 0x01;
         balance_mask   = RxData[1]; 
     }
@@ -379,7 +386,7 @@ int main(void)
 	sFilterConfig.FilterActivation     = CAN_FILTER_ENABLE;
 	sFilterConfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
 	sFilterConfig.FilterMode           = CAN_FILTERMODE_IDMASK;
-	sFilterConfig.FilterIdHigh         = 0x200 << 5;
+	sFilterConfig.FilterIdHigh         = CAN_ID_SLAVE1_RX << 5;
 	sFilterConfig.FilterIdLow          = 0;
 	sFilterConfig.FilterMaskIdHigh     = 0x7FF << 5;
 	sFilterConfig.FilterMaskIdLow      = 0;

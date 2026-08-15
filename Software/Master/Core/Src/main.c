@@ -367,14 +367,14 @@ static void Update_Cell_Voltage_Filter(uint8_t cell_index, uint16_t sample_mV)
 }
 
 
-void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
   CAN_RxHeaderTypeDef RxHeader;
   uint8_t RxData[8];
 
-  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &RxHeader, RxData) != HAL_OK)
+  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK)
   {
-    HAL_CAN_ActivateNotification(hcan, CAN_IT_RX_FIFO1_MSG_PENDING);
+    HAL_CAN_ActivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
     return;
   }
 
@@ -383,7 +383,7 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
   else if (RxHeader.StdId == CAN_ID_SLAVE2_TX) { idx = 1U; master_rx_slave2++; }
   else if (RxHeader.StdId == CAN_ID_SLAVE3_TX) { idx = 2U; master_rx_slave3++; }
   else {
-    HAL_CAN_ActivateNotification(hcan, CAN_IT_RX_FIFO1_MSG_PENDING);
+    HAL_CAN_ActivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
     return;
   }
 
@@ -407,7 +407,7 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
       if (tmp_frameA_cells[idx][i] < CELL_VALID_MIN_MV ||
           tmp_frameA_cells[idx][i] > CELL_VALID_MAX_MV) {
         got_frameA[idx] = 0;
-        HAL_CAN_ActivateNotification(hcan, CAN_IT_RX_FIFO1_MSG_PENDING);
+        HAL_CAN_ActivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
         return;
       }
     }
@@ -430,7 +430,7 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
     if (tmp_frameB_cell5[idx] < CELL_VALID_MIN_MV ||
         tmp_frameB_cell5[idx] > CELL_VALID_MAX_MV) {
       got_frameB[idx] = 0;
-      HAL_CAN_ActivateNotification(hcan, CAN_IT_RX_FIFO1_MSG_PENDING);
+      HAL_CAN_ActivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
       return;
     }
 
@@ -463,7 +463,7 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
     /* Blink user LED once per assembled two-frame message (matches slave) */
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
   }
-  HAL_CAN_ActivateNotification(hcan, CAN_IT_RX_FIFO1_MSG_PENDING);
+  HAL_CAN_ActivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
 }
 
 /* USER CODE END 0 */
@@ -515,17 +515,30 @@ int main(void)
 
   HAL_CAN_Start(&hcan);
 
+  /* Accept only slave telemetry IDs: Slave1 (0x101), Slave2 (0x102), Slave3 (0x103).
+   * Exact 11-bit mask match rejects the master's own TX and any bus noise.
+   * Reception uses FIFO0, synchronized with the slave nodes. */
+  sFilterConfig.FilterActivation     = CAN_FILTER_ENABLE;
+  sFilterConfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+  sFilterConfig.FilterMode           = CAN_FILTERMODE_IDMASK;
+  sFilterConfig.FilterScale          = CAN_FILTERSCALE_32BIT;
+  sFilterConfig.FilterIdLow          = 0x0000;
+  sFilterConfig.FilterMaskIdLow      = 0x0000;
+
   sFilterConfig.FilterBank           = 0;
-	sFilterConfig.FilterActivation     = CAN_FILTER_ENABLE;
-	sFilterConfig.FilterFIFOAssignment = CAN_FILTER_FIFO1;
-	sFilterConfig.FilterMode           = CAN_FILTERMODE_IDMASK;
-	sFilterConfig.FilterScale          = CAN_FILTERSCALE_32BIT;
-	sFilterConfig.FilterIdHigh         = 0x0000;
-	sFilterConfig.FilterIdLow          = 0x0000;
-	sFilterConfig.FilterMaskIdHigh     = 0x0000;  
-	sFilterConfig.FilterMaskIdLow      = 0x0000;
-	HAL_CAN_ConfigFilter(&hcan, &sFilterConfig);
-	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO1_MSG_PENDING);
+  sFilterConfig.FilterIdHigh         = CAN_ID_SLAVE1_TX << 5;
+  sFilterConfig.FilterMaskIdHigh     = 0x7FF << 5;
+  HAL_CAN_ConfigFilter(&hcan, &sFilterConfig);
+
+  sFilterConfig.FilterBank           = 1;
+  sFilterConfig.FilterIdHigh         = CAN_ID_SLAVE2_TX << 5;
+  HAL_CAN_ConfigFilter(&hcan, &sFilterConfig);
+
+  sFilterConfig.FilterBank           = 2;
+  sFilterConfig.FilterIdHigh         = CAN_ID_SLAVE3_TX << 5;
+  HAL_CAN_ConfigFilter(&hcan, &sFilterConfig);
+
+  HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
 
 	TxHeader_Cmd.DLC   = 8;
 	TxHeader_Cmd.IDE   = CAN_ID_STD;
