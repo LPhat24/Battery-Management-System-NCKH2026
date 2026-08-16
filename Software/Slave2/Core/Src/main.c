@@ -88,6 +88,13 @@ CAN_FilterTypeDef sFilterConfig;
 CAN_RxHeaderTypeDef RxHeader;
 uint8_t RxData[8];
 
+/* CAN diagnostics */
+volatile uint32_t rx_count             = 0;
+volatile uint32_t error_callback_count = 0;
+volatile uint8_t  last_rx_id           = 0;
+volatile uint8_t  last_rx_dlc          = 0;
+uint8_t           last_rx_data[8]      = {0};
+
 uint16_t voltage_mV_f[5]  = {0};
 
 // Per-cell calibration factors (real / measured).
@@ -328,6 +335,11 @@ void control_balance(void)
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
     HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData);
+    rx_count++;
+    can_error = HAL_CAN_GetError(hcan);
+    last_rx_id  = RxHeader.StdId;
+    last_rx_dlc = RxHeader.DLC;
+    for (int i = 0; i < 8; i++) last_rx_data[i] = RxData[i];
 
     // Slave 2 command ID
     if (RxHeader.StdId == CAN_ID_SLAVE2_RX) { 
@@ -335,6 +347,12 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
         balance_mask   = RxData[1]; 
     }
     HAL_CAN_ActivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+}
+
+void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
+{
+    error_callback_count++;
+    can_error = HAL_CAN_GetError(hcan);
 }
 
 /* USER CODE END 0 */
@@ -395,7 +413,7 @@ int main(void)
 	sFilterConfig.FilterScale          = CAN_FILTERSCALE_32BIT;
 	sFilterConfig.FilterBank           = 0;
 	HAL_CAN_ConfigFilter(&hcan, &sFilterConfig);
-	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_ERROR);
 
   /* USER CODE END 2 */
 

@@ -124,6 +124,18 @@ typedef enum {
     PRECHARGE_DONE
 } PrechargeState_t;
 
+/* Consolidated per-slave telemetry received over CAN (Frame A + Frame B) */
+typedef struct {
+	uint16_t cell_voltage_mV[5];   /* 5 cells in mV */
+	int16_t  temperature_tenths;   /* temperature x10 (e.g. 253 = 25.3 C) */
+	uint8_t  mosfet_mask;          /* 5-bit balance MOSFET status */
+	uint8_t  sequence;             /* frame sequence from slave */
+	uint32_t last_rx_tick;         /* HAL_GetTick() of last complete update */
+	bool     data_valid;           /* true when both frames received */
+	uint32_t frame_a_count;        /* Frame A received count */
+	uint32_t frame_b_count;        /* Frame B received count */
+} SlaveData_t;
+
 
 /* USER CODE END PD */
 
@@ -215,6 +227,15 @@ uint8_t  tmp_frameB_mask[3];
 
 #define CELL_VALID_MIN_MV 500U
 #define CELL_VALID_MAX_MV 5000U
+
+/* CAN diagnostics */
+volatile uint32_t master_can_error            = 0;
+volatile uint32_t master_tx_count             = 0;
+volatile uint32_t master_rx_fifo0_count       = 0;
+volatile uint32_t master_error_callback_count = 0;
+
+/* Consolidated per-slave data: [0]=Slave1 (0x101), [1]=Slave2 (0x102) */
+SlaveData_t slave_data[2] = {0};
 
 /* USER CODE END PV */
 
@@ -378,6 +399,9 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     return;
   }
 
+  master_rx_fifo0_count++;
+  master_can_error = HAL_CAN_GetError(hcan);
+
   uint8_t idx = 0xFFU;
   if      (RxHeader.StdId == CAN_ID_SLAVE1_TX) { idx = 0U; master_rx_slave1++; }
   else if (RxHeader.StdId == CAN_ID_SLAVE2_TX) { idx = 1U; master_rx_slave2++; }
@@ -416,6 +440,11 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
       for (int i = 0; i < 4; i++)
         tmp_frameA_cells[idx][i] = tmp_frameA_cells[idx][i] / 10;
     }
+    if (idx < 2) {
+      for (int i = 0; i < 4; i++)
+        slave_data[idx].cell_voltage_mV[i] = tmp_frameA_cells[idx][i];
+      slave_data[idx].frame_a_count++;
+    }
     got_frameA[idx] = 1;
   }
   else
@@ -444,11 +473,22 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     /* Store temperature as float degrees (tenths -> °C) */
     slave_temp[idx] = ((float)tmp_frameB_temp_tenths[idx]) / 10.0f;
     Update_Temperature_Max();
+    if (idx < 2) {
+      slave_data[idx].cell_voltage_mV[4] = tmp_frameB_cell5[idx];
+      slave_data[idx].temperature_tenths = tmp_frameB_temp_tenths[idx];
+      slave_data[idx].mosfet_mask        = tmp_frameB_mask[idx];
+      slave_data[idx].sequence           = RxData[5];
+      slave_data[idx].frame_b_count++;
+    }
     got_frameB[idx] = 1;
   }
 
   /* If we've received both halves for this slave, assemble into final buffers */
   if (got_frameA[idx] && got_frameB[idx]) {
+    if (idx < 2) {
+      slave_data[idx].last_rx_tick = HAL_GetTick();
+      slave_data[idx].data_valid = true;
+    }
     for (int i = 0; i < 4; i++)
       Update_Cell_Voltage_Filter((uint8_t)(base + i), tmp_frameA_cells[idx][i]);
     Update_Cell_Voltage_Filter((uint8_t)(base + 4), tmp_frameB_cell5[idx]);
@@ -464,6 +504,12 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
   }
   HAL_CAN_ActivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+}
+
+void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
+{
+  master_error_callback_count++;
+  master_can_error = HAL_CAN_GetError(hcan);
 }
 
 /* USER CODE END 0 */
@@ -538,7 +584,7 @@ int main(void)
   sFilterConfig.FilterIdHigh         = CAN_ID_SLAVE3_TX << 5;
   HAL_CAN_ConfigFilter(&hcan, &sFilterConfig);
 
-  HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+  HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_ERROR);
 
 	TxHeader_Cmd.DLC   = 8;
 	TxHeader_Cmd.IDE   = CAN_ID_STD;
@@ -926,8 +972,10 @@ void Master_Balance_Control(void)
             TxData_Bal[0] = 0; // enable = 0
             TxData_Bal[1] = 0; // mask = 0
             TxHeader_Bal.StdId = (uint32_t)CAN_ID_SLAVE1_RX + (uint32_t)s;
-            if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan) > 0)
-                HAL_CAN_AddTxMessage(&hcan, &TxHeader_Bal, TxData_Bal, &TxMailbox_Bal);
+            if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan) > 0) {
+                if (HAL_CAN_AddTxMessage(&hcan, &TxHeader_Bal, TxData_Bal, &TxMailbox_Bal) == HAL_OK)
+                    master_tx_count++;
+            }
         }
         return;
     }
@@ -953,8 +1001,10 @@ void Master_Balance_Control(void)
             TxData_Bal[0] = 1;
             TxData_Bal[1] = 0; // mask = 0
             TxHeader_Bal.StdId = (uint32_t)CAN_ID_SLAVE1_RX + (uint32_t)s;
-            if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan) > 0)
-                HAL_CAN_AddTxMessage(&hcan, &TxHeader_Bal, TxData_Bal, &TxMailbox_Bal);
+            if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan) > 0) {
+                if (HAL_CAN_AddTxMessage(&hcan, &TxHeader_Bal, TxData_Bal, &TxMailbox_Bal) == HAL_OK)
+                    master_tx_count++;
+            }
         }
         return;
     }
@@ -984,8 +1034,10 @@ void Master_Balance_Control(void)
         TxData_Bal[1] = mask; // balance mask
         TxHeader_Bal.StdId = (uint32_t)CAN_ID_SLAVE1_RX + (uint32_t)s;
 
-        if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan) > 0)
-            HAL_CAN_AddTxMessage(&hcan, &TxHeader_Bal, TxData_Bal, &TxMailbox_Bal);
+        if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan) > 0) {
+            if (HAL_CAN_AddTxMessage(&hcan, &TxHeader_Bal, TxData_Bal, &TxMailbox_Bal) == HAL_OK)
+                master_tx_count++;
+        }
     }
 }
 
