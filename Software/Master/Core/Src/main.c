@@ -191,6 +191,7 @@ AnalogInput Analog_In;
 
 uint16_t all_cell_voltage_mV[TOTAL_CELLS] = {0};
 static uint8_t cell_filter_initialized[TOTAL_CELLS] = {0};
+volatile bool safety_fault = false;
 
 
 CAN_FilterTypeDef sFilterConfig;
@@ -1133,7 +1134,7 @@ void Precharge_Handle(void)
     switch (precharge_state)
     {
         case PRECHARGE_IDLE:
-            if (Digital_In.SW_Load)
+            if (Digital_In.SW_Load && !safety_fault)
             {
                 HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1,  GPIO_PIN_SET);
                 HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
@@ -1151,7 +1152,14 @@ void Precharge_Handle(void)
             break;
 
         case PRECHARGE_ACTIVE:
-            if (HAL_GetTick() - precharge_timer >= 3000)
+            if (safety_fault)
+            {
+                HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1,  GPIO_PIN_RESET);
+                HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
+                HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+                precharge_state = PRECHARGE_IDLE;
+            }
+            else if (HAL_GetTick() - precharge_timer >= 3000)
             {
                 HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1,  GPIO_PIN_RESET);
                 HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
@@ -1161,7 +1169,7 @@ void Precharge_Handle(void)
             break;
 
         case PRECHARGE_DONE:
-            if (!Digital_In.SW_Load)
+            if (!Digital_In.SW_Load || safety_fault)
             {
                 HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1,  GPIO_PIN_RESET);
                 HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
@@ -1213,8 +1221,9 @@ void Read_Analog_Input (void) {
 }
 
 /* Safety control: set PB14, PB1, PB10, PB11 according to current and cell voltages
- * - PB14 HIGH: disconnect charge when current < -Ichg or any cell > Vchg
- * - PB1/PB10/PB11 LOW: disconnect discharge+precharge when any fault occurs
+ * - Discharge fault (undervoltage or |current| > Idis): PB1/PB10/PB11 LOW
+ * - PB14 (Charge Control, active HIGH=cut): allow only when ChargeState==1
+ *   and Vmax <= Vchg and current <= Ichg (charging current positive)
  */
 void Safety_Control(void)
 {
@@ -1233,19 +1242,29 @@ void Safety_Control(void)
     if (v > 500U && v < Vdis_mV) any_lt_vdis = true;
   }
 
-  /* PB14: charge inhibit (active HIGH) */
-  if ((Digital_In.ChargeState && cur_mA < -(int32_t)Ichg_mA) || any_gt_vchg) {
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_SET);
-  } else {
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
-  }
+  /* Discharge fault: undervoltage or absolute overcurrent discharge
+   * (discharge current is negative, use |cur_mA| for Idis comparison).
+   * Controls PB1/PB10/PB11 (precharge + main contactor + charge relay). */
+  bool discharge_fault = any_lt_vdis ||
+                         (cur_mA > (int32_t)Idis_mA) ||
+                         (cur_mA < -(int32_t)Idis_mA);
+  safety_fault = discharge_fault;
 
-  /* Fault: cut all control pins on overvoltage, undervoltage, or overcurrent */
-  if (any_gt_vchg || any_lt_vdis || (cur_mA > (int32_t)Idis_mA)) {
+  if (discharge_fault) {
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1,  GPIO_PIN_RESET);
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
   }
+
+  /* PB14: Charge Control (active HIGH = cut charging).
+   * Allow (LOW) only when ChargeState==1 (PA5==0, charging signal active)
+   * and Vmax <= Vchg and current <= Ichg (charging current positive).
+   * Otherwise cut (HIGH). */
+  bool allow_charge = Digital_In.ChargeState &&
+                      !any_gt_vchg &&
+                      (cur_mA <= (int32_t)Ichg_mA);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14,
+                    allow_charge ? GPIO_PIN_RESET : GPIO_PIN_SET);
 }
 
 void Fan_Control(void)
