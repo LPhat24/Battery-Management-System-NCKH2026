@@ -107,7 +107,7 @@ uint16_t voltage_mV_f[5]  = {0};
 /* Per-cell calibration factors (real / measured) - cell1 updated from measurement */
 /* Reset calibration factors to 1.0 for re-calibration start */
 //float calib_factor[5] = {1.0183592f, 0.9952328f, 1.2535311f, 0.9963514f, 1.1682028f};
-float calib_factor[5] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+float calib_factor[5] = {0.995100021f, 0.983099997f, 0.975899994f, 0.981100023f, 1.01549995f};
 
 /* calibration/results storage */
 
