@@ -212,7 +212,16 @@ uint32_t            TxMailbox_Cmd;
 uint8_t             TxData_Cmd[8]      = {0};
 
 volatile uint32_t slave_last_tick[3] = {0};
-#define SLAVE_TIMEOUT_MS 3000
+#define SLAVE_TIMEOUT_MS 500
+
+/* PC13 LED blink period in ms, set by the main loop from slave connectivity
+ * (100 = two slaves, 500 = one slave, 0 = solid on). Read by the CAN RX ISR. */
+volatile uint32_t led_period_ms = 100U;
+
+/* Last PC13 toggle tick and the period used at that time, shared between the
+ * CAN RX ISR (blink) and LED_Status_Update() (period selection). */
+volatile uint32_t led_last_toggle_tick = 0;
+volatile uint32_t led_last_period_ms   = 0;
 
 /* Last computed current (tenths of A). Inspect this in debugger for final value. */
 /* Current sensor removed: no runtime variables */
@@ -272,6 +281,7 @@ static void LCD_WriteLine(uint8_t ddram_addr, const char *text);
 static void Update_Cell_Voltage_Filter(uint8_t cell_index, uint16_t sample_mV);
 
 void Check_Slave_Timeout(void);
+void LED_Status_Update(void);
 void Read_Digital_Input (void);
 void Read_Analog_Input (void);
 void Button_Handle (void);
@@ -500,8 +510,15 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     /* indicate new complete data set */
     new_can_data = 1;
 
-    /* Blink user LED once per assembled two-frame message (matches slave) */
-    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+    /* Blink PC13 at led_period_ms (ISR-driven, so timing is independent of the
+     * slow main loop). Runs on every complete frame pair while data flows. */
+    uint32_t now_tick = HAL_GetTick();
+    if (led_period_ms > 0U &&
+        (now_tick - led_last_toggle_tick) >= led_period_ms) {
+      HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+      led_last_toggle_tick = now_tick;
+      led_last_period_ms    = led_period_ms;
+    }
   }
   HAL_CAN_ActivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
 }
@@ -595,7 +612,7 @@ int main(void)
   lcd_send_cmd(0x80|0x02);
   lcd_send_string("PASSIVE BMS");
   lcd_send_cmd(0x80|0x43);
-  lcd_send_string("NGUYEN DUY THONG");
+  lcd_send_string("PHAM MINH DUC");
   lcd_send_cmd(0x80|0x15);
   lcd_send_string("LE THANH PHAT");
   lcd_send_cmd(0x80|0x54);
@@ -617,6 +634,7 @@ int main(void)
     Safety_Control();
     Check_Slave_Timeout();
     Fan_Control();
+    LED_Status_Update();
 
     if (new_can_data) {
         new_can_data = 0;
@@ -1057,6 +1075,52 @@ void Check_Slave_Timeout(void)
         }
     }
   Update_Temperature_Max();
+}
+
+/* PC13 LED status controller (period selection only; the actual toggling is
+ * done by the CAN RX ISR at led_period_ms).
+ * - 0 active slaves: LED OFF (no valid CAN data).
+ * - 1 active slave  : toggle state every 500 ms.
+ * - 2 active slaves : toggle state every 20 ms.
+ * Connectivity is judged by the last RX timestamp so a lost slave is
+ * reflected immediately by the timeout in Check_Slave_Timeout().
+ */
+void LED_Status_Update(void)
+{
+    uint32_t now = HAL_GetTick();
+    uint32_t period_ms;
+    uint8_t  active = 0;
+
+    for (uint8_t s = 0; s < 2; s++) {
+        if (slave_last_tick[s] > 0 &&
+            (now - slave_last_tick[s]) <= SLAVE_TIMEOUT_MS) {
+            active++;
+        }
+    }
+
+    if (active == 0) {
+        /* No data: force LED OFF. PC13 LED is active-low, 0 = off.
+         * led_period_ms = 0 disables ISR toggling. */
+        led_period_ms = 0U;
+        HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, 0);
+        led_last_toggle_tick = now;
+        led_last_period_ms   = 0U;
+        return;
+    }
+    else if (active == 1) {
+        period_ms = 500U;
+    }
+    else {
+        period_ms = 20U;
+    }
+
+    /* Reset the ISR blink phase when the rate changes so the LED does not
+     * appear to hold a stale edge after a connectivity change. */
+    if (led_last_period_ms != period_ms) {
+        led_last_toggle_tick = now;
+        led_last_period_ms   = period_ms;
+    }
+    led_period_ms = period_ms;
 }
 
 /* Current sensor removed: no measurement function */
