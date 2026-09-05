@@ -1,5 +1,5 @@
 /* USER CODE BEGIN Header */
-/** LE THANH PHAT
+/** 
   ******************************************************************************
   * @file           : main.c
   * @brief          : Main program body
@@ -41,12 +41,10 @@
 
 #define CAN_ID_SLAVE1_TX        0x101U
 #define CAN_ID_SLAVE2_TX        0x102U
-#define CAN_ID_SLAVE3_TX        0x103U
-#define CAN_ID_SLAVE1_RX        0x200U
-#define CAN_ID_SLAVE2_RX        0x201U
-#define CAN_ID_SLAVE3_RX        0x202U
+#define CAN_ID_SLAVE1_RX        0x201U
+#define CAN_ID_SLAVE2_RX        0x202U
 
-#define MASTER_SLAVE_COUNT      3U
+#define MASTER_SLAVE_COUNT      2U
 
 /* Masks for packed CAN fields (used by CAN_UnpackData)
  * CELL_MASK: 9 bits (0..8)
@@ -156,7 +154,7 @@ UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 
-volatile uint8_t    slave_connected[3] = {0};
+volatile uint8_t    slave_connected[2] = {0};
 volatile uint8_t    new_can_data       =  0;
 CAN_TxHeaderTypeDef TxHeader_Bal;
 uint32_t            TxMailbox_Bal;
@@ -187,7 +185,7 @@ static uint8_t settings_filter_initialized = 0u;
 volatile int32_t debug_current_adc_mv_offset = DEFAULT_CURRENT_ADC_MV_OFFSET;
 AnalogInput Analog_In;
 
-#define TOTAL_CELLS 15
+#define TOTAL_CELLS 10
 
 uint16_t all_cell_voltage_mV[TOTAL_CELLS] = {0};
 static uint8_t cell_filter_initialized[TOTAL_CELLS] = {0};
@@ -199,20 +197,20 @@ CAN_FilterTypeDef sFilterConfig;
 char uart_tx_debug_buf[200];
 volatile uint16_t uart_tx_debug_len = 0;
 
-volatile float    slave_temp[3]        = {0};
+volatile float    slave_temp[2]        = {0};
 volatile float    temperature_max      = 0.0f;
 volatile int16_t  temperature_max_tenths = 0;
-volatile uint8_t  rx_mosfet_status[15] = {0};
+volatile uint8_t  rx_mosfet_status[10] = {0};
 volatile uint32_t master_rx_count      = 0;
 volatile uint8_t  master_rx_slave1     = 0;
 volatile uint8_t  master_rx_slave2     = 0;
-volatile uint8_t  master_rx_slave3     = 0;
+
 
 CAN_TxHeaderTypeDef TxHeader_Cmd;
 uint32_t            TxMailbox_Cmd;
 uint8_t             TxData_Cmd[8]      = {0};
 
-volatile uint32_t slave_last_tick[3] = {0};
+volatile uint32_t slave_last_tick[2] = {0};
 #define SLAVE_TIMEOUT_MS 500
 
 /* PC13 LED blink period in ms, set by the main loop from slave connectivity
@@ -228,12 +226,12 @@ volatile uint32_t led_last_period_ms   = 0;
 /* Current sensor removed: no runtime variables */
 
 /* Temporary buffers to assemble 2-frame CAN messages per slave */
-volatile uint8_t got_frameA[3] = {0};
-volatile uint8_t got_frameB[3] = {0};
-uint16_t tmp_frameA_cells[3][4];
-uint16_t tmp_frameB_cell5[3];
-int16_t  tmp_frameB_temp_tenths[3];
-uint8_t  tmp_frameB_mask[3];
+volatile uint8_t got_frameA[2] = {0};
+volatile uint8_t got_frameB[2] = {0};
+uint16_t tmp_frameA_cells[2][4];
+uint16_t tmp_frameB_cell5[2];
+int16_t  tmp_frameB_temp_tenths[2];
+uint8_t  tmp_frameB_mask[2];
 
 #define CELL_VALID_MIN_MV 500U
 #define CELL_VALID_MAX_MV 5000U
@@ -416,7 +414,6 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
   uint8_t idx = 0xFFU;
   if      (RxHeader.StdId == CAN_ID_SLAVE1_TX) { idx = 0U; master_rx_slave1++; }
   else if (RxHeader.StdId == CAN_ID_SLAVE2_TX) { idx = 1U; master_rx_slave2++; }
-  else if (RxHeader.StdId == CAN_ID_SLAVE3_TX) { idx = 2U; master_rx_slave3++; }
   else {
     HAL_CAN_ActivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
     return;
@@ -579,7 +576,7 @@ int main(void)
 
   HAL_CAN_Start(&hcan);
 
-  /* Accept only slave telemetry IDs: Slave1 (0x101), Slave2 (0x102), Slave3 (0x103).
+  /* Accept only slave telemetry IDs: Slave1 (0x101), Slave2 (0x102).
    * Exact 11-bit mask match rejects the master's own TX and any bus noise.
    * Reception uses FIFO0, synchronized with the slave nodes. */
   sFilterConfig.FilterActivation     = CAN_FILTER_ENABLE;
@@ -596,10 +593,6 @@ int main(void)
 
   sFilterConfig.FilterBank           = 1;
   sFilterConfig.FilterIdHigh         = CAN_ID_SLAVE2_TX << 5;
-  HAL_CAN_ConfigFilter(&hcan, &sFilterConfig);
-
-  sFilterConfig.FilterBank           = 2;
-  sFilterConfig.FilterIdHigh         = CAN_ID_SLAVE3_TX << 5;
   HAL_CAN_ConfigFilter(&hcan, &sFilterConfig);
 
   HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_ERROR);
@@ -998,7 +991,7 @@ static void MX_GPIO_Init(void)
 void Master_Balance_Control(void)
 {
     if (!Digital_In.SW_Balancing) {
-        for (int s = 0; s < 3; s++) {
+        for (int s = 0; s < 2; s++) {
             if (!slave_connected[s]) continue;
             TxData_Bal[0] = 0; // enable = 0
             TxData_Bal[1] = 0; // mask = 0
@@ -1015,7 +1008,7 @@ void Master_Balance_Control(void)
     uint16_t global_max_mV = 0;
 
     // Tìm max/min toàn hệ thống bằng số nguyên
-    for (int i = 0; i < 15; i++) {
+    for (int i = 0; i < TOTAL_CELLS; i++) {
         if (all_cell_voltage_mV[i] < 500) continue; // Bỏ qua cell < 500mV (bị ngắt)
         
         if (all_cell_voltage_mV[i] < global_min_mV)
@@ -1027,7 +1020,7 @@ void Master_Balance_Control(void)
 
     // Chênh lệch <= 10mV thì không xả
     if (global_max_mV >= global_min_mV && (global_max_mV - global_min_mV) <= 10) {
-        for (int s = 0; s < 3; s++) {
+        for (int s = 0; s < 2; s++) {
             if (!slave_connected[s]) continue;
             TxData_Bal[0] = 1;
             TxData_Bal[1] = 0; // mask = 0
@@ -1041,7 +1034,7 @@ void Master_Balance_Control(void)
     }
 
     // Tính mask xả cho từng Slave
-    for (int s = 0; s < 3; s++) {
+    for (int s = 0; s < 2; s++) {
         if (!slave_connected[s]) continue;
 
         uint8_t mask = 0;
@@ -1075,7 +1068,7 @@ void Master_Balance_Control(void)
 void Check_Slave_Timeout(void)
 {
     uint32_t now = HAL_GetTick();
-    for (int s = 0; s < 3; s++) {
+    for (int s = 0; s < 2; s++) {
         if (slave_last_tick[s] > 0 &&
             (now - slave_last_tick[s]) > SLAVE_TIMEOUT_MS) {
             uint8_t base = s * 5;
@@ -1505,32 +1498,34 @@ void LCD_Page1(void)
 void LCD_Page2(void)
 {
     char buf[21];
-    sprintf(buf, "C1:%4d C2:%4d", all_cell_voltage_mV[0], all_cell_voltage_mV[1]);
+
+    snprintf(buf, sizeof(buf), "Slave1 ID:0x%03X", CAN_ID_SLAVE1_TX);
     LCD_WriteLine(0x00, buf);
 
-    sprintf(buf, "C3:%4d C4:%4d", all_cell_voltage_mV[2], all_cell_voltage_mV[3]);
+    sprintf(buf, "C1:%4d C2:%4d", all_cell_voltage_mV[0], all_cell_voltage_mV[1]);
     LCD_WriteLine(0x40, buf);
 
-    sprintf(buf, "C5:%4d C6:%4d", all_cell_voltage_mV[4], all_cell_voltage_mV[5]);
+    sprintf(buf, "C3:%4d C4:%4d", all_cell_voltage_mV[2], all_cell_voltage_mV[3]);
     LCD_WriteLine(0x14, buf);
 
-    sprintf(buf, "C7:%4d C8:%4d", all_cell_voltage_mV[6], all_cell_voltage_mV[7]);
+    sprintf(buf, "C5:%4d", all_cell_voltage_mV[4]);
     LCD_WriteLine(0x54, buf);
 }
 
 void LCD_Page3(void)
 {
     char buf[21];
-    sprintf(buf, "C9:%4d C10:%4d", all_cell_voltage_mV[8], all_cell_voltage_mV[9]);
+
+    snprintf(buf, sizeof(buf), "Slave2 ID:0x%03X", CAN_ID_SLAVE2_TX);
     LCD_WriteLine(0x00, buf);
 
-    sprintf(buf, "C11:%4d C12:%4d", all_cell_voltage_mV[10], all_cell_voltage_mV[11]);
+    sprintf(buf, "C6:%4d C7:%4d", all_cell_voltage_mV[5], all_cell_voltage_mV[6]);
     LCD_WriteLine(0x40, buf);
 
-    sprintf(buf, "C13:%4d C14:%4d", all_cell_voltage_mV[12], all_cell_voltage_mV[13]);
+    sprintf(buf, "C8:%4d C9:%4d", all_cell_voltage_mV[7], all_cell_voltage_mV[8]);
     LCD_WriteLine(0x14, buf);
 
-    sprintf(buf, "C15:%4d", all_cell_voltage_mV[14]);
+    sprintf(buf, "C10:%4d", all_cell_voltage_mV[9]);
     LCD_WriteLine(0x54, buf);
 }
 void LCD_Page4 (void) {
