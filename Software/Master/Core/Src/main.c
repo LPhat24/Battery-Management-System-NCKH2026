@@ -610,15 +610,27 @@ int main(void)
   TxHeader_Cmd.StdId = CAN_ID_SLAVE1_RX;
 
   lcd_init();
-  lcd_send_cmd(0x80|0x02);
-  lcd_send_string("PASSIVE BMS");
-  lcd_send_cmd(0x80|0x43);
-  lcd_send_string("PHAM MINH DUC");
-  lcd_send_cmd(0x80|0x15);
-  lcd_send_string("LE THANH PHAT");
+  /* Intro screen 1: title (3s) */
+  lcd_send_cmd(0x80|0x00);
+  lcd_send_string("Distributed Battery");
+  lcd_send_cmd(0x80|0x41);
+  lcd_send_string("Management System");
+  lcd_send_cmd(0x80|0x14);
+  lcd_send_string("for Electric Vehicle");
   lcd_send_cmd(0x80|0x54);
-  lcd_send_string("--------------------");
-  HAL_Delay(1000);
+  lcd_send_string("                    ");
+  HAL_Delay(3000);
+  lcd_clear();
+  /* Intro screen 2: advisor & students (3s) */
+  lcd_send_cmd(0x80|0x01);
+  lcd_send_string("Dr. Le Thanh Phuc");
+  lcd_send_cmd(0x80|0x45);
+  lcd_send_string("Students:");
+  lcd_send_cmd(0x80|0x17);
+  lcd_send_string("Pham Minh Duc");
+  lcd_send_cmd(0x80|0x57);
+  lcd_send_string("Le Thanh Phuc");
+  HAL_Delay(3000);
   lcd_clear();
 
   /* USER CODE END 2 */
@@ -1193,10 +1205,10 @@ void Read_Digital_Input (void) {
 	Digital_In.ChargeState = !HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_5);
 }
 void Read_Analog_Input (void) {
-  Analog_In.Raw_I_Charge_Max = ADC_RawData [0];
-  Analog_In.Raw_V_Discharge_Min = ADC_RawData [1];
-  Analog_In.Raw_V_Charge_Max =    ADC_RawData [2];
-  Analog_In.Raw_I_Discharge_Max = ADC_RawData [3];
+  Analog_In.Raw_I_Discharge_Max = ADC_RawData [0]; /* PA0 CH0 = Current Discharge Max (Idis) pot */
+  Analog_In.Raw_V_Discharge_Min = ADC_RawData [1]; /* PA1 CH1 = Vdis_min pot */
+  Analog_In.Raw_I_Charge_Max    = ADC_RawData [2]; /* PA2 CH2 = Current Charge Max (Ichg) pot */
+  Analog_In.Raw_V_Charge_Max    = ADC_RawData [3]; /* PA3 CH3 = Voltage Charge Max (Vchg) pot */
 
   /* Update debug ADC/voltage for current sensor (PA4) */
   Current_Sensor_Calc();
@@ -1222,8 +1234,8 @@ void Read_Analog_Input (void) {
 
 /* Safety control: set PB14, PB1, PB10, PB11 according to current and cell voltages
  * - Discharge fault (undervoltage or |current| > Idis): PB1/PB10/PB11 LOW
- * - PB14 (Charge Control, active HIGH=cut): allow only when ChargeState==1
- *   and Vmax <= Vchg and current <= Ichg (charging current positive)
+ * - PB14 (Charge Control, active HIGH=cut): LOW when ChargeState==0 (no charger,
+ *   avoid power drain); HIGH only when ChargeState==1 and (Vmax > Vchg or I > Ichg)
  */
 void Safety_Control(void)
 {
@@ -1257,14 +1269,16 @@ void Safety_Control(void)
   }
 
   /* PB14: Charge Control (active HIGH = cut charging).
-   * Allow (LOW) only when ChargeState==1 (PA5==0, charging signal active)
-   * and Vmax <= Vchg and current <= Ichg (charging current positive).
-   * Otherwise cut (HIGH). */
-  bool allow_charge = Digital_In.ChargeState &&
-                      !any_gt_vchg &&
-                      (cur_mA <= (int32_t)Ichg_mA);
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14,
-                    allow_charge ? GPIO_PIN_RESET : GPIO_PIN_SET);
+   * When charger not connected (ChargeState==0, PA5==1), keep LOW to avoid
+   * power drain. Only assert HIGH to cut when charging is active but a
+   * charge fault (overvoltage or overcurrent) exists. */
+  if (!Digital_In.ChargeState) {
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
+  } else if (any_gt_vchg || (cur_mA > (int32_t)Ichg_mA)) {
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_SET);
+  } else {
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
+  }
 }
 
 void Fan_Control(void)
