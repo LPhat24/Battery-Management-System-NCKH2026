@@ -89,7 +89,7 @@
 typedef struct {
 	uint8_t ButtonLeft;
 	uint8_t ButtonRight;
-	uint8_t SW_LabVIEW;
+	uint8_t SW_UART;
 	uint8_t SW_Balancing;
 	uint8_t SW_LCDMode;
 	uint8_t SW_Load;
@@ -1223,7 +1223,7 @@ void Read_Digital_Input (void) {
 	Digital_In.ButtonRight =     !HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_4);
 
 	Digital_In.SW_Balancing =   !HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_3);
-	Digital_In.SW_LabVIEW =     !HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15);
+	Digital_In.SW_UART =        !HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15);
 
 	Digital_In.SW_LCDMode =     !HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_14);
 	Digital_In.SW_Load =        !HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_15);
@@ -1568,7 +1568,7 @@ void LCD_Page4 (void) {
     lcd_send_string(buf);
 
     // Dòng 2
-    sprintf(buf, "LabVIEW:   %s     ", Digital_In.SW_LabVIEW ? "ON " : "OFF");
+    sprintf(buf, "Monitor UART: %s   ", Digital_In.SW_UART ? "ON " : "OFF");
     lcd_send_cmd(0x80|0x40);
     lcd_send_string(buf);
 
@@ -1666,11 +1666,11 @@ void LCD_Update () {
 }
 
 /* Send CSV telemetry:
- * total,SOC,current,temp,Vmin,Vmax,deltaV,swSetting,swLoad,swBal,cell1..cell15,swLabVIEW */
+ * total,SOC,current,temp,Vmin,Vmax,deltaV,swSetting,swLoad,swBal,cell1..cell15,swUART */
 void Send_Cells_UART(void)
 {
-  /* Only send telemetry when LabVIEW switch is enabled */
-  if (!Digital_In.SW_LabVIEW) {
+  /* Only send telemetry when UART switch is enabled */
+  if (!Digital_In.SW_UART) {
     uart_tx_debug_len = 0;
     return;
   }
@@ -1698,7 +1698,7 @@ void Send_Cells_UART(void)
   uint32_t deltaV = (uint32_t)(max_mV >= min_mV ? (uint32_t)(max_mV - min_mV) : 0U);
 
   /* SOC and current unavailable -> set to 0 as requested */
-  /* Compute SOC in tenths of percent for UART (LabVIEW will divide by 10) */
+  /* Compute SOC in tenths of percent for UART (UART monitor will divide by 10) */
   uint16_t soc = Compute_SOC_TenthsPercent();
   int32_t current_mA = CurrentSensor_Get_mA();
 
@@ -1728,10 +1728,10 @@ void Send_Cells_UART(void)
     if (len >= (int)sizeof(uart_tx_debug_buf) - 16) break; /* guard */
   }
 
-  /* Append SW_LabVIEW state as trailing field (0 = OFF, 1 = ON) so the
+  /* Append SW_UART state as trailing field (0 = OFF, 1 = ON) so the
    * monitor can confirm switch sensing independently of the gate above. */
   len += snprintf(uart_tx_debug_buf + len, sizeof(uart_tx_debug_buf) - len,
-                  ",%u", (unsigned)(Digital_In.SW_LabVIEW ? 1U : 0U));
+                  ",%u", (unsigned)(Digital_In.SW_UART ? 1U : 0U));
 
   /* Terminate with newline */
   if (len < (int)sizeof(uart_tx_debug_buf) - 2) uart_tx_debug_buf[len++] = '\n';

@@ -5,7 +5,7 @@
 % Hardware: STM32F103C8T6 Master  |  UART 115200 (PA9/PA10) - Fixed COM5
 % CSV: total_mV, soc_tenths, current_mA, temp_tenths, min_mV, max_mV,
 %      deltaV_mV, swSetting, swLoad, swBal, cell1..cell15_mV \n
-% SW_LabVIEW (PA15) must be ON for telemetry to be transmitted.
+% SW_UART (PA15) must be ON for telemetry to be transmitted.
 % AutoMonitor is hardcoded to COM5 @ 115200. All graph config identical
 % to ScriptMonitor.m.
 %==========================================================================
@@ -36,100 +36,87 @@ end
 % FIGURE 1: Pack Parameters (Total V, Current, Temp, SoC, DeltaV) + Control Panel
 %==========================================================================
 fig1 = figure('Name','Distributed Battery Management System Monitoring', ...
-    'NumberTitle','off','Color','w','Position',[30 30 980 820], ...
+    'NumberTitle','off','Color','w','Units','normalized','Position',[0.005 0.035 0.985 0.925], ...
     'CloseRequestFcn', @(src,evt) onFigureClose(src));
 
-% --- Control Panel docked at top of fig1 ---
+% --- Control Panel docked at top of fig1 (single line) ---
 ctrlPanel = uipanel('Parent',fig1,'Title','Control Panel','Units','normalized', ...
-    'Position',[0.005 0.880 0.990 0.115],'BackgroundColor','w','FontWeight','bold','FontSize',9);
+    'Position',[0.005 0.925 0.990 0.070],'BackgroundColor','w','FontWeight','bold','FontSize',9);
 
-uicontrol(ctrlPanel,'Style','text','String','Port: COM5 @ 115200 (fixed)','Units','normalized','Position',[0.020 0.60 0.300 0.34],'BackgroundColor','w','FontWeight','bold','ForegroundColor',[0 0.45 0]);
+uicontrol(ctrlPanel,'Style','text','String','Port: COM5 @ 115200 (fixed)','Units','normalized','Position',[0.010 0.25 0.175 0.50],'BackgroundColor','w','FontWeight','bold','FontSize',8,'ForegroundColor',[0 0.45 0]);
 
-uicontrol(ctrlPanel,'Style','text','String','Dur(s)/inf:','Units','normalized','Position',[0.350 0.63 0.075 0.30],'BackgroundColor','w','FontWeight','bold','HorizontalAlignment','left');
-hEditDur = uicontrol(ctrlPanel,'Style','edit','String',DEFAULT_DUR,'Units','normalized','Position',[0.430 0.60 0.090 0.34],'BackgroundColor','w','TooltipString','Number of seconds or inf for continuous');
+uicontrol(ctrlPanel,'Style','text','String','Dur(s)/inf:','Units','normalized','Position',[0.375 0.28 0.070 0.44],'BackgroundColor','w','FontWeight','bold','FontSize',8,'HorizontalAlignment','left');
+hEditDur = uicontrol(ctrlPanel,'Style','edit','String',DEFAULT_DUR,'Units','normalized','Position',[0.450 0.25 0.070 0.50],'BackgroundColor','w','FontSize',8,'TooltipString','Number of seconds or inf for continuous');
 
-hBtnStart = uicontrol(ctrlPanel,'Style','pushbutton','String','Start','Units','normalized','Position',[0.090 0.07 0.110 0.38], ...
-    'BackgroundColor',[0.2 0.7 0.2],'ForegroundColor','w','FontWeight','bold','FontSize',10, ...
+hBtnStart = uicontrol(ctrlPanel,'Style','pushbutton','String','Start','Units','normalized','Position',[0.195 0.18 0.075 0.62], ...
+    'BackgroundColor',[0.2 0.7 0.2],'ForegroundColor','w','FontWeight','bold','FontSize',8, ...
     'Callback', @(s,e) onStart());
 
-hBtnStop = uicontrol(ctrlPanel,'Style','pushbutton','String','Stop','Units','normalized','Position',[0.215 0.07 0.110 0.38], ...
-    'BackgroundColor',[0.8 0.2 0.2],'ForegroundColor','w','FontWeight','bold','FontSize',10, ...
+hBtnStop = uicontrol(ctrlPanel,'Style','pushbutton','String','Stop','Units','normalized','Position',[0.278 0.18 0.075 0.62], ...
+    'BackgroundColor',[0.8 0.2 0.2],'ForegroundColor','w','FontWeight','bold','FontSize',8, ...
     'Callback', @(s,e) onStop());
 set(hBtnStop,'Enable','off');
 
-hTxtStatus = uicontrol(ctrlPanel,'Style','text','String','Status: Idle. COM5 @ 115200 fixed. Set Duration, then Start. SW_LabVIEW (PA15) must be ON.', ...
-    'Units','normalized','Position',[0.345 0.10 0.400 0.32],'BackgroundColor','w','HorizontalAlignment','left','FontSize',7);
+hTxtStatus = uicontrol(ctrlPanel,'Style','text','String','Status: Idle. COM5 @ 115200 fixed. Set Duration, then Start. SW_UART (PA15) must be ON.', ...
+    'Units','normalized','Position',[0.540 0.25 0.355 0.50],'BackgroundColor','w','HorizontalAlignment','left','FontSize',7);
 
-hTxtTimer = uicontrol(ctrlPanel,'Style','text','String','Elapsed: 0.0 s','Units','normalized','Position',[0.830 0.10 0.155 0.35], ...
-    'BackgroundColor','w','FontWeight','bold','FontSize',10,'HorizontalAlignment','center');
+hTxtTimer = uicontrol(ctrlPanel,'Style','text','String','Elapsed: 0.0 s','Units','normalized','Position',[0.900 0.28 0.095 0.44], ...
+    'BackgroundColor','w','FontWeight','bold','FontSize',8,'HorizontalAlignment','center');
 
-% --- Pack axes (will be shifted down to make room for panel) ---
-ax_total = subplot(3,2,[1 2],'Parent',fig1,'Color','w','XColor','k','YColor','k');
-p_total = plot(ax_total, NaN, NaN, 'Color',[0 0.6 0],'LineWidth',2);
-ylabel(ax_total,'Total Voltage (mV)','FontWeight','bold');
-xlabel(ax_total,'Time (s)','FontWeight','bold');
+% --- Pack axes: left 50% (5 plots) + right 50% cell voltages (DPI-safe) ---
+ax_total = axes('Parent',fig1,'Position',[0.025 0.610 0.450 0.285],'Color','w','XColor','k','YColor','k');
+p_total = plot(ax_total, NaN, NaN, 'Color',[0 0.6 0],'LineWidth',1.1);
+ylabel(ax_total,'Total Voltage (mV)','FontWeight','bold','FontSize',7);
+xlabel(ax_total,'Time (s)','FontWeight','bold','FontSize',7);
 grid(ax_total,'on'); ax_total.GridColor='k'; ax_total.GridAlpha=0.2;
-txt_total = text(ax_total,0.02,0.90,'','Units','normalized','FontWeight','bold','FontSize',8,'BackgroundColor','w','Margin',2);
+ax_total.YAxis.Exponent = 0; ax_total.FontSize = 6;
+txt_total = text(ax_total,0.02,0.90,'','Units','normalized','FontWeight','bold','FontSize',6,'BackgroundColor','w','Margin',2);
 
-ax_soc = subplot(3,2,3,'Parent',fig1,'Color','w','XColor','k','YColor','k');
-p_soc = plot(ax_soc, NaN, NaN, 'Color',[0 0.4 0.8],'LineWidth',2);
-ylabel(ax_soc,'SoC (%)','FontWeight','bold');
-xlabel(ax_soc,'Time (s)','FontWeight','bold');
-grid(ax_soc,'on'); ax_soc.GridColor='k'; ax_soc.GridAlpha=0.2;
-txt_soc = text(ax_soc,0.02,0.90,'','Units','normalized','FontWeight','bold','FontSize',8,'BackgroundColor','w','Margin',2);
+ax_soc = axes('Parent',fig1,'Position',[0.025 0.330 0.205 0.240],'Color','w','XColor','k','YColor','k');
+p_soc = plot(ax_soc, NaN, NaN, 'Color',[0 0.4 0.8],'LineWidth',1.1);
+ylabel(ax_soc,'SoC (%)','FontWeight','bold','FontSize',7);
+xlabel(ax_soc,'Time (s)','FontWeight','bold','FontSize',7);
+grid(ax_soc,'on'); ax_soc.GridColor='k'; ax_soc.GridAlpha=0.2; ax_soc.FontSize = 6;
+txt_soc = text(ax_soc,0.02,0.90,'','Units','normalized','FontWeight','bold','FontSize',6,'BackgroundColor','w','Margin',2);
 
-ax_curr = subplot(3,2,4,'Parent',fig1,'Color','w','XColor','k','YColor','k');
-p_curr = plot(ax_curr, NaN, NaN, 'Color',[0.8 0.6 0],'LineWidth',2);
-ylabel(ax_curr,'Current (A)','FontWeight','bold');
-xlabel(ax_curr,'Time (s)','FontWeight','bold');
-grid(ax_curr,'on'); ax_curr.GridColor='k'; ax_curr.GridAlpha=0.2;
-txt_curr = text(ax_curr,0.02,0.90,'','Units','normalized','FontWeight','bold','FontSize',8,'BackgroundColor','w','Margin',2);
+ax_curr = axes('Parent',fig1,'Position',[0.270 0.330 0.205 0.240],'Color','w','XColor','k','YColor','k');
+p_curr = plot(ax_curr, NaN, NaN, 'Color',[0.8 0.6 0],'LineWidth',1.1);
+ylabel(ax_curr,'Current (A)','FontWeight','bold','FontSize',7);
+xlabel(ax_curr,'Time (s)','FontWeight','bold','FontSize',7);
+grid(ax_curr,'on'); ax_curr.GridColor='k'; ax_curr.GridAlpha=0.2; ax_curr.FontSize = 6;
+txt_curr = text(ax_curr,0.02,0.90,'','Units','normalized','FontWeight','bold','FontSize',6,'BackgroundColor','w','Margin',2);
 
-ax_temp = subplot(3,2,5,'Parent',fig1,'Color','w','XColor','k','YColor','k');
-p_temp = plot(ax_temp, NaN, NaN, 'Color',[0.8 0 0],'LineWidth',2);
-ylabel(ax_temp,'Temperature (C)','FontWeight','bold');
-xlabel(ax_temp,'Time (s)','FontWeight','bold');
-grid(ax_temp,'on'); ax_temp.GridColor='k'; ax_temp.GridAlpha=0.2;
-txt_temp = text(ax_temp,0.02,0.90,'','Units','normalized','FontWeight','bold','FontSize',8,'BackgroundColor','w','Margin',2);
+ax_temp = axes('Parent',fig1,'Position',[0.025 0.050 0.205 0.240],'Color','w','XColor','k','YColor','k');
+p_temp = plot(ax_temp, NaN, NaN, 'Color',[0.8 0 0],'LineWidth',1.1);
+ylabel(ax_temp,'Temperature (C)','FontWeight','bold','FontSize',7);
+xlabel(ax_temp,'Time (s)','FontWeight','bold','FontSize',7);
+grid(ax_temp,'on'); ax_temp.GridColor='k'; ax_temp.GridAlpha=0.2; ax_temp.FontSize = 6;
+txt_temp = text(ax_temp,0.02,0.90,'','Units','normalized','FontWeight','bold','FontSize',6,'BackgroundColor','w','Margin',2);
 
-ax_delta = subplot(3,2,6,'Parent',fig1,'Color','w','XColor','k','YColor','k');
-p_delta = plot(ax_delta, NaN, NaN, 'Color',[0.6 0 0.6],'LineWidth',2);
-ylabel(ax_delta,'Delta V (mV)','FontWeight','bold');
-xlabel(ax_delta,'Time (s)','FontWeight','bold');
-grid(ax_delta,'on'); ax_delta.GridColor='k'; ax_delta.GridAlpha=0.2;
-txt_delta = text(ax_delta,0.02,0.90,'','Units','normalized','FontWeight','bold','FontSize',8,'BackgroundColor','w','Margin',2);
+ax_delta = axes('Parent',fig1,'Position',[0.270 0.050 0.205 0.240],'Color','w','XColor','k','YColor','k');
+p_delta = plot(ax_delta, NaN, NaN, 'Color',[0.6 0 0.6],'LineWidth',1.1);
+ylabel(ax_delta,'Delta V (mV)','FontWeight','bold','FontSize',7);
+xlabel(ax_delta,'Time (s)','FontWeight','bold','FontSize',7);
+grid(ax_delta,'on'); ax_delta.GridColor='k'; ax_delta.GridAlpha=0.2; ax_delta.FontSize = 6;
+txt_delta = text(ax_delta,0.02,0.90,'','Units','normalized','FontWeight','bold','FontSize',6,'BackgroundColor','w','Margin',2);
 
 linkaxes([ax_total, ax_soc, ax_curr, ax_temp, ax_delta],'x');
 
-% Shift subplot area down to avoid panel overlap (compress to lower ~86%% of figure)
-for axH = [ax_total, ax_soc, ax_curr, ax_temp, ax_delta]
-    axPos = get(axH,'Position');
-    axPos(2) = axPos(2) * 0.86;
-    axPos(4) = axPos(4) * 0.86;
-    set(axH,'Position',axPos);
-end
-
-%==========================================================================
-% FIGURE 2: Individual Cell Voltages (10 cells)
-%==========================================================================
-fig2 = figure('Name','Distributed Battery Management System Monitoring - Cell Voltages', ...
-    'NumberTitle','off','Color','w','Position',[1050 200 860 560], ...
-    'CloseRequestFcn', @(src,evt) onFigureClose(src));
-axCell = axes('Parent',fig2,'Color','w','XColor','k','YColor','k');
+% Cell voltages: right 50% priority, full height
+axCell = axes('Parent',fig1,'Position',[0.500 0.050 0.475 0.845],'Color','w','XColor','k','YColor','k');
 hold(axCell,'on');
-ylabel(axCell,'Voltage (mV)','FontWeight','bold');
-xlabel(axCell,'Time (s)','FontWeight','bold');
-grid(axCell,'on'); axCell.GridColor='k'; axCell.GridAlpha=0.2;
+ylabel(axCell,'Cell Voltage (mV)','FontWeight','bold','FontSize',7);
+xlabel(axCell,'Time (s)','FontWeight','bold','FontSize',7);
+grid(axCell,'on'); axCell.GridColor='k'; axCell.GridAlpha=0.2; axCell.FontSize = 6;
 colors = lines(10);
 p_cells = gobjects(1,10);
 for c = 1:10
-    p_cells(c) = plot(axCell, NaN, NaN, 'Color', colors(c,:), 'LineWidth',1.5, 'DisplayName', sprintf('Cell %d',c));
+    p_cells(c) = plot(axCell, NaN, NaN, 'Color', colors(c,:), 'LineWidth',1.0, 'DisplayName', sprintf('Cell %d',c));
 end
-legend(axCell,'Location','eastoutside');
-txt_cells = text(axCell,0.02,0.95,'','Units','normalized','FontWeight','bold','FontSize',8,'BackgroundColor','w','Margin',2);
+legend(axCell,'Location','northeast','FontSize',5.5);
+txt_cells = text(axCell,0.02,0.95,'','Units','normalized','FontWeight','bold','FontSize',6,'BackgroundColor','w','Margin',2);
 
-% Bring fig1 (with docked controls) to front so panel is visible
-figure(fig1); drawnow;
+drawnow;
 
 % --- Initialize appdata on fig1 (docked controls) ---
 setappdata(fig1,'isRunning',false);
@@ -140,7 +127,6 @@ setappdata(fig1,'hEditDur',hEditDur);
 setappdata(fig1,'hTxtStatus',hTxtStatus);
 setappdata(fig1,'hTxtTimer',hTxtTimer);
 setappdata(fig1,'fig1',fig1);
-setappdata(fig1,'fig2',fig2);
 setappdata(fig1,'figCtrl',fig1);
 setappdata(fig1,'axHandles',{ax_total, ax_soc, ax_curr, ax_temp, ax_delta, axCell});
 setappdata(fig1,'lineHandles',{p_total, p_soc, p_curr, p_temp, p_delta, p_cells});
@@ -151,7 +137,7 @@ assignin('base','gBMSCtrlFig',fig1);
 setappdata(0,'BMSCtrlFig',fig1);
 
 fprintf('GUI ready. COM5 @ 115200 fixed. Set Duration, then click Start.\n');
-fprintf('Note: Master SW_LabVIEW switch (PA15) must be ON for telemetry.\n');
+fprintf('Note: Master SW_UART switch (PA15) must be ON for telemetry.\n');
 
 %==========================================================================
 % Local Functions
@@ -208,7 +194,7 @@ function onStart()
         setappdata(figCtrl,'durationSec',durationSec);
         setappdata(figCtrl,'byteTotal',0);
         setappdata(figCtrl,'lineTotal',0);
-        set(hTxtStatus,'String',sprintf('Status: Connected %s @ %d baud | Duration: %s | SW_LabVIEW must be ON',comStr,baudVal,durStr));
+        set(hTxtStatus,'String',sprintf('Status: Connected %s @ %d baud | Duration: %s | SW_UART must be ON',comStr,baudVal,durStr));
         if ishandle(hBtnStart), set(hBtnStart,'Enable','off'); end
         if ishandle(hBtnStop), set(hBtnStop,'Enable','on'); end
         drawnow;
@@ -278,10 +264,6 @@ function onFigureClose(src)
         catch
         end
         try, delete(figCtrl); catch, end
-        try
-            f2 = getappdata(figCtrl,'fig2'); if ishandle(f2), delete(f2); end
-        catch
-        end
         setappdata(0,'BMSCtrlFig',[]);
         return;
     end
@@ -324,7 +306,6 @@ function runAcquisition(figCtrl)
     lineHandles= getappdata(figCtrl,'lineHandles');
     txtHandles = getappdata(figCtrl,'txtHandles');
     fig1 = getappdata(figCtrl,'fig1');
-    fig2 = getappdata(figCtrl,'fig2');
 
     ax_total = axHandles{1}; ax_soc=axHandles{2}; ax_curr=axHandles{3};
     ax_temp=axHandles{4}; ax_delta=axHandles{5}; axCell=axHandles{6};
@@ -354,7 +335,7 @@ function runAcquisition(figCtrl)
             end
             break;
         end
-        if ~ishandle(fig1) || ~ishandle(fig2)
+        if ~ishandle(fig1)
             fprintf('Acquisition stopped: figure closed (lines=%d, bytes=%d).\n', lineTotal, byteTotal);
             setappdata(figCtrl,'isRunning',false);
             break;
@@ -385,8 +366,8 @@ function runAcquisition(figCtrl)
                         contains(ME.identifier, "Timeout", "IgnoreCase", true);
             if isTimeout
                 if num==0 && elapsed>2
-                    set(txt_total,'String','Waiting for data... Check SW_LabVIEW (PA15) ON');
-                    set(hTxtStatus,'String',sprintf('Status: %s @ %d baud | bytes: %d | lines: %d | Waiting... SW_LabVIEW must be ON', s.Port, s.BaudRate, byteTotal, lineTotal));
+                    set(txt_total,'String','Waiting for data... Check SW_UART (PA15) ON');
+                    set(hTxtStatus,'String',sprintf('Status: %s @ %d baud | bytes: %d | lines: %d | Waiting... SW_UART must be ON', s.Port, s.BaudRate, byteTotal, lineTotal));
                 end
                 drawnow limitrate;
                 continue;
@@ -449,8 +430,16 @@ function runAcquisition(figCtrl)
         xMin = 0;
         xlim(ax_delta,[xMin xMax]);
         xlim(axCell,[xMin xMax]);
-        ylim(ax_total,'auto'); ylim(ax_soc,'auto'); ylim(ax_curr,'auto');
-        ylim(ax_temp,'auto'); ylim(ax_delta,'auto'); ylim(axCell,'auto');
+        ylim(ax_total,'auto'); ylim(axCell,'auto');
+        % Keep total-voltage Y ticks as integers (no x10^n exponent)
+        yLim_total = ylim(ax_total);
+        pad_total = max((yLim_total(2) - yLim_total(1)) * 0.05, 100);
+        ylim(ax_total, [floor((yLim_total(1) - pad_total)/50)*50, ceil((yLim_total(2) + pad_total)/50)*50]);
+        % Dynamic Y scaling for remaining pack plots (avoids fixed 0-1 on flat data)
+        applyScaledYLim(ax_soc,   soc_buf(1:num), 5);
+        applyScaledYLim(ax_curr,  cur_buf(1:num), 0.5);
+        applyScaledYLim(ax_temp,  tmp_buf(1:num), 5);
+        applyScaledYLim(ax_delta, del_buf(1:num), 2);
 
         set(txt_total,'String',sprintf('%.0f mV | %.1f s',v_buf(num),tNow));
         set(txt_soc,'String',sprintf('%.1f %% | %.1f s',soc_buf(num),tNow));
@@ -462,7 +451,7 @@ function runAcquisition(figCtrl)
         if swLab >= 0
             swTxt = "OFF";
             if swLab==1, swTxt = "ON"; end
-            set(hTxtStatus,'String',sprintf('Status: %s @ %d baud | bytes: %d | lines: %d | SW_LabVIEW: %s', ...
+            set(hTxtStatus,'String',sprintf('Status: %s @ %d baud | bytes: %d | lines: %d | SW_UART: %s', ...
                 s.Port, s.BaudRate, byteTotal, lineTotal, swTxt));
         else
             set(hTxtStatus,'String',sprintf('Status: %s @ %d baud | bytes: %d | lines: %d',...
@@ -501,6 +490,35 @@ function runAcquisition(figCtrl)
         set(hTxtTimer,'String',sprintf('Elapsed: %.1f s | Stopped',toc(t0)));
     end
     fprintf('Acquisition ended (lines=%d, bytes=%d).\n', lineTotal, byteTotal);
+end
+
+function applyScaledYLim(ax, data, minSpan)
+    d = data(isfinite(data));
+    if isempty(d)
+        ylim(ax, 'auto');
+        return;
+    end
+    lo = min(d);
+    hi = max(d);
+    span = max(hi - lo, minSpan);
+    pad = span * 0.15;
+    lo = lo - pad;
+    hi = hi + pad;
+    step = niceStep(hi - lo);
+    ylim(ax, [floor(lo/step)*step, ceil(hi/step)*step]);
+end
+
+function step = niceStep(span)
+    span = max(span, 1e-9);
+    mag = 10^floor(log10(span));
+    for c = [1 2 5 10]
+        s = c * mag;
+        if span <= 5 * s
+            step = s;
+            return;
+        end
+    end
+    step = 10 * mag;
 end
 
 function cleanupSerial(portName)

@@ -21,7 +21,7 @@ This file defines the foundational mandates, architectural principles, and engin
   - **Naming:** `snake_case` for variables, functions, and files.
   - **Variables:** Avoid unnecessary global variables; prefer local scope or module-level encapsulation.
   - **Memory:** Avoid dynamic memory allocation (`malloc`/`free`).
-- **Communication:** CAN Bus (Internal), UART (Telemetry/LabVIEW), I2C (LCD).
+- **Communication:** CAN Bus (Internal), UART (Telemetry/Monitoring), I2C (LCD).
 
 ## 4. Development Workflow & Philosophy
 - **Priority:** 1. Correctness | 2. Safety | 3. Maintainability | 4. Testability | 5. Readability | 6. Performance.

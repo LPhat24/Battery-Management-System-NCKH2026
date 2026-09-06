@@ -3,7 +3,7 @@
 %==========================================================================
 % Hardware: STM32F103C8T6 Master  |  USART1 PA9(TX)/PA10(RX) @ 115200 8N1
 % Wiring: USB-TTL RX -> PA9 (Master TX), GND common
-% Note: Master only transmits when SW_LabVIEW (PA15) is ON (active-low).
+% Note: Master only transmits when SW_UART (PA15) is ON (active-low).
 %==========================================================================
 clc;
 clearvars;
@@ -42,7 +42,7 @@ configureTerminator(s, "LF");
 flush(s);
 
 fprintf('Listening on %s @ %d baud. Waiting for UART data...\n', COM_PORT, BAUD_RATE);
-fprintf('Master SW_LabVIEW (PA15) must be ON, otherwise no data is sent.\n');
+fprintf('Master SW_UART (PA15) must be ON, otherwise no data is sent.\n');
 fprintf('Press Ctrl+C to stop.\n');
 fprintf('----------------------------------------------------\n');
 

@@ -5,7 +5,7 @@
 % Hardware: STM32F103C8T6 Master  |  UART 115200 (PA9/PA10)
 % CSV: total_mV, soc_tenths, current_mA, temp_tenths, min_mV, max_mV,
 %      deltaV_mV, swSetting, swLoad, swBal, cell1..cell15_mV \n
-% SW_LabVIEW (PA15) must be ON for telemetry to be transmitted.
+% SW_UART (PA15) must be ON for telemetry to be transmitted.
 %==========================================================================
 clc;
 clearvars;
@@ -67,7 +67,7 @@ hBtnStop = uicontrol(ctrlPanel,'Style','pushbutton','String','Stop','Units','nor
     'BackgroundColor',[0.8 0.2 0.2],'ForegroundColor','w','FontWeight','bold','FontSize',10, ...
     'Callback', @(s,e) onStop());
 
-hTxtStatus = uicontrol(ctrlPanel,'Style','text','String','Status: Idle. Select COM, set Baud/Duration, then Start. SW_LabVIEW (PA15) must be ON.', ...
+hTxtStatus = uicontrol(ctrlPanel,'Style','text','String','Status: Idle. Select COM, set Baud/Duration, then Start. SW_UART (PA15) must be ON.', ...
     'Units','normalized','Position',[0.345 0.10 0.400 0.32],'BackgroundColor','w','HorizontalAlignment','left','FontSize',7);
 
 hTxtTimer = uicontrol(ctrlPanel,'Style','text','String','Elapsed: 0.0 s','Units','normalized','Position',[0.830 0.10 0.155 0.35], ...
@@ -162,7 +162,7 @@ assignin('base','gBMSCtrlFig',fig1);
 setappdata(0,'BMSCtrlFig',fig1);
 
 fprintf('GUI ready. Select COM port, set Baud/Duration, then click Start.\n');
-fprintf('Note: Master SW_LabVIEW switch (PA15) must be ON for telemetry.\n');
+fprintf('Note: Master SW_UART switch (PA15) must be ON for telemetry.\n');
 
 %==========================================================================
 % Local Functions
@@ -269,7 +269,7 @@ function onStart()
     setappdata(figCtrl,'durationSec',durationSec);
     setappdata(figCtrl,'byteTotal',0);
     setappdata(figCtrl,'lineTotal',0);
-    set(hTxtStatus,'String',sprintf('Status: Connected %s @ %d baud | Duration: %s | SW_LabVIEW must be ON',comStr,baudVal,durStr));
+    set(hTxtStatus,'String',sprintf('Status: Connected %s @ %d baud | Duration: %s | SW_UART must be ON',comStr,baudVal,durStr));
 
     resetPlots(figCtrl);
     runAcquisition(figCtrl);
@@ -411,8 +411,8 @@ function runAcquisition(figCtrl)
                         contains(ME.identifier, "Timeout", "IgnoreCase", true);
             if isTimeout
                 if num==0 && elapsed>2
-                    set(txt_total,'String','Waiting for data... Check SW_LabVIEW (PA15) ON');
-                    set(hTxtStatus,'String',sprintf('Status: %s @ %d baud | bytes: %d | lines: %d | Waiting... SW_LabVIEW must be ON', s.Port, s.BaudRate, byteTotal, lineTotal));
+                    set(txt_total,'String','Waiting for data... Check SW_UART (PA15) ON');
+                    set(hTxtStatus,'String',sprintf('Status: %s @ %d baud | bytes: %d | lines: %d | Waiting... SW_UART must be ON', s.Port, s.BaudRate, byteTotal, lineTotal));
                 end
                 drawnow limitrate;
                 continue;
@@ -488,7 +488,7 @@ function runAcquisition(figCtrl)
         if swLab >= 0
             swTxt = "OFF";
             if swLab==1, swTxt = "ON"; end
-            set(hTxtStatus,'String',sprintf('Status: %s @ %d baud | bytes: %d | lines: %d | SW_LabVIEW: %s', ...
+            set(hTxtStatus,'String',sprintf('Status: %s @ %d baud | bytes: %d | lines: %d | SW_UART: %s', ...
                 s.Port, s.BaudRate, byteTotal, lineTotal, swTxt));
         else
             set(hTxtStatus,'String',sprintf('Status: %s @ %d baud | bytes: %d | lines: %d',...
