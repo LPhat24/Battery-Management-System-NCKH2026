@@ -1,11 +1,13 @@
 %==========================================================================
-% ScriptMonitor.m - Distributed Battery Management System Monitoring
+% AutoMonitor.m - Distributed Battery Management System Monitoring (Auto)
 %==========================================================================
 % Author: Student Research Project (BMS-EV)
-% Hardware: STM32F103C8T6 Master  |  UART 115200 (PA9/PA10)
+% Hardware: STM32F103C8T6 Master  |  UART 115200 (PA9/PA10) - Fixed COM5
 % CSV: total_mV, soc_tenths, current_mA, temp_tenths, min_mV, max_mV,
 %      deltaV_mV, swSetting, swLoad, swBal, cell1..cell15_mV \n
 % SW_LabVIEW (PA15) must be ON for telemetry to be transmitted.
+% AutoMonitor is hardcoded to COM5 @ 115200. All graph config identical
+% to ScriptMonitor.m.
 %==========================================================================
 clc;
 clearvars;
@@ -41,23 +43,10 @@ fig1 = figure('Name','Distributed Battery Management System Monitoring', ...
 ctrlPanel = uipanel('Parent',fig1,'Title','Control Panel','Units','normalized', ...
     'Position',[0.005 0.880 0.990 0.115],'BackgroundColor','w','FontWeight','bold','FontSize',9);
 
-hPopCOM = uicontrol(ctrlPanel,'Style','popupmenu','String',{''},'Units','normalized','Position',[0.250 0.60 0.180 0.34],'BackgroundColor','w');
+uicontrol(ctrlPanel,'Style','text','String','Port: COM5 @ 115200 (fixed)','Units','normalized','Position',[0.020 0.60 0.300 0.34],'BackgroundColor','w','FontWeight','bold','ForegroundColor',[0 0.45 0]);
 
-uicontrol(ctrlPanel,'Style','text','String','COM:','Units','normalized','Position',[0.200 0.63 0.048 0.30],'BackgroundColor','w','FontWeight','bold','HorizontalAlignment','left');
-
-uicontrol(ctrlPanel,'Style','text','String','Manual:','Units','normalized','Position',[0.445 0.63 0.050 0.30],'BackgroundColor','w','FontWeight','bold','HorizontalAlignment','left');
-hEditCOM = uicontrol(ctrlPanel,'Style','edit','String','','Units','normalized','Position',[0.497 0.60 0.090 0.34],'BackgroundColor','w','TooltipString','Type a port manually, e.g. COM5');
-
-uicontrol(ctrlPanel,'Style','pushbutton','String','Refresh','Units','normalized','Position',[0.592 0.60 0.065 0.34], ...
-    'Callback', @(s,e) refreshPorts(hPopCOM));
-
-refreshPorts(hPopCOM);
-
-uicontrol(ctrlPanel,'Style','text','String','Baud:','Units','normalized','Position',[0.668 0.63 0.038 0.30],'BackgroundColor','w','FontWeight','bold','HorizontalAlignment','left');
-hEditBaud = uicontrol(ctrlPanel,'Style','edit','String',DEFAULT_BAUD,'Units','normalized','Position',[0.708 0.60 0.075 0.34],'BackgroundColor','w');
-
-uicontrol(ctrlPanel,'Style','text','String','Dur(s)/inf:','Units','normalized','Position',[0.792 0.63 0.075 0.30],'BackgroundColor','w','FontWeight','bold','HorizontalAlignment','left');
-hEditDur = uicontrol(ctrlPanel,'Style','edit','String',DEFAULT_DUR,'Units','normalized','Position',[0.868 0.60 0.075 0.34],'BackgroundColor','w','TooltipString','Number of seconds or inf for continuous');
+uicontrol(ctrlPanel,'Style','text','String','Dur(s)/inf:','Units','normalized','Position',[0.350 0.63 0.075 0.30],'BackgroundColor','w','FontWeight','bold','HorizontalAlignment','left');
+hEditDur = uicontrol(ctrlPanel,'Style','edit','String',DEFAULT_DUR,'Units','normalized','Position',[0.430 0.60 0.090 0.34],'BackgroundColor','w','TooltipString','Number of seconds or inf for continuous');
 
 hBtnStart = uicontrol(ctrlPanel,'Style','pushbutton','String','Start','Units','normalized','Position',[0.090 0.07 0.110 0.38], ...
     'BackgroundColor',[0.2 0.7 0.2],'ForegroundColor','w','FontWeight','bold','FontSize',10, ...
@@ -66,8 +55,9 @@ hBtnStart = uicontrol(ctrlPanel,'Style','pushbutton','String','Start','Units','n
 hBtnStop = uicontrol(ctrlPanel,'Style','pushbutton','String','Stop','Units','normalized','Position',[0.215 0.07 0.110 0.38], ...
     'BackgroundColor',[0.8 0.2 0.2],'ForegroundColor','w','FontWeight','bold','FontSize',10, ...
     'Callback', @(s,e) onStop());
+set(hBtnStop,'Enable','off');
 
-hTxtStatus = uicontrol(ctrlPanel,'Style','text','String','Status: Idle. Select COM, set Baud/Duration, then Start. SW_LabVIEW (PA15) must be ON.', ...
+hTxtStatus = uicontrol(ctrlPanel,'Style','text','String','Status: Idle. COM5 @ 115200 fixed. Set Duration, then Start. SW_LabVIEW (PA15) must be ON.', ...
     'Units','normalized','Position',[0.345 0.10 0.400 0.32],'BackgroundColor','w','HorizontalAlignment','left','FontSize',7);
 
 hTxtTimer = uicontrol(ctrlPanel,'Style','text','String','Elapsed: 0.0 s','Units','normalized','Position',[0.830 0.10 0.155 0.35], ...
@@ -144,9 +134,8 @@ figure(fig1); drawnow;
 % --- Initialize appdata on fig1 (docked controls) ---
 setappdata(fig1,'isRunning',false);
 setappdata(fig1,'sHandle',[]);
-setappdata(fig1,'hPopCOM',hPopCOM);
-setappdata(fig1,'hEditCOM',hEditCOM);
-setappdata(fig1,'hEditBaud',hEditBaud);
+setappdata(fig1,'hBtnStart',hBtnStart);
+setappdata(fig1,'hBtnStop',hBtnStop);
 setappdata(fig1,'hEditDur',hEditDur);
 setappdata(fig1,'hTxtStatus',hTxtStatus);
 setappdata(fig1,'hTxtTimer',hTxtTimer);
@@ -161,40 +150,12 @@ setappdata(fig1,'txtHandles',{txt_total, txt_soc, txt_curr, txt_temp, txt_delta,
 assignin('base','gBMSCtrlFig',fig1);
 setappdata(0,'BMSCtrlFig',fig1);
 
-fprintf('GUI ready. Select COM port, set Baud/Duration, then click Start.\n');
+fprintf('GUI ready. COM5 @ 115200 fixed. Set Duration, then click Start.\n');
 fprintf('Note: Master SW_LabVIEW switch (PA15) must be ON for telemetry.\n');
 
 %==========================================================================
 % Local Functions
 %==========================================================================
-
-function refreshPorts(hPop)
-    try
-        freePorts = serialportlist("available");
-    catch
-        freePorts = string([]);
-    end
-    try
-        allPorts = serialportlist("all");
-    catch
-        allPorts = freePorts;
-    end
-    if isempty(allPorts)
-        allPorts = "No ports found";
-    end
-    allPorts = strtrim(string(allPorts));
-    busy = ~ismember(lower(allPorts), lower(freePorts));
-    items = allPorts;
-    for k = find(busy).'
-        items(k) = allPorts(k) + " (busy)";
-    end
-    set(hPop,'String',items,'Value',1);
-end
-
-function comStr = normalizePort(comStr)
-    comStr = strtrim(string(comStr));
-    comStr = regexprep(comStr, '\s+\(busy\)$', '');
-end
 
 function onStart()
     figCtrl = getappdata(0,'BMSCtrlFig');
@@ -202,77 +163,81 @@ function onStart()
     if getappdata(figCtrl,'isRunning')
         return;
     end
-    hPopCOM  = getappdata(figCtrl,'hPopCOM');
-    hEditCOM = getappdata(figCtrl,'hEditCOM');
-    hEditBaud= getappdata(figCtrl,'hEditBaud');
     hEditDur = getappdata(figCtrl,'hEditDur');
     hTxtStatus=getappdata(figCtrl,'hTxtStatus');
-
-    manual = strtrim(string(get(hEditCOM,'String')));
-    if manual ~= ""
-        comStr = normalizePort(manual);
-    else
-        comList = get(hPopCOM,'String');
-        comIdx  = get(hPopCOM,'Value');
-        if iscell(comList)
-            comStr = string(comList{comIdx});
-        elseif isstring(comList)
-            comStr = comList(comIdx);
+    hBtnStart=getappdata(figCtrl,'hBtnStart');
+    hBtnStop=getappdata(figCtrl,'hBtnStop');
+    try
+        % Hardcoded COM5 @ 115200 for AutoMonitor
+        comStr = "COM5";
+        baudVal = 115200;
+        durStr = strtrim(get(hEditDur,'String'));
+        if strcmpi(durStr,'inf') || strcmpi(durStr,'infinite') || durStr==""
+            durationSec = inf;
         else
-            comStr = string(comList(comIdx,:));
+            durationSec = str2double(durStr);
+            if isnan(durationSec) || durationSec<0
+                set(hTxtStatus,'String','Status: Invalid Duration. Use number or inf.');
+                return;
+            end
+            if durationSec==0
+                durationSec = inf;
+            end
         end
-        comStr = normalizePort(comStr);
-    end
-    if comStr=="No ports found" || comStr==""
-        set(hTxtStatus,'String','Status: No COM port selected/available.');
-        return;
-    end
-    baudStr = strtrim(get(hEditBaud,'String'));
-    baudVal = str2double(baudStr);
-    if isnan(baudVal) || baudVal<=0
-        set(hTxtStatus,'String','Status: Invalid Baudrate.');
-        return;
-    end
-    durStr = strtrim(get(hEditDur,'String'));
-    if strcmpi(durStr,'inf') || strcmpi(durStr,'infinite') || durStr==""
-        durationSec = inf;
-    else
-        durationSec = str2double(durStr);
-        if isnan(durationSec) || durationSec<0
-            set(hTxtStatus,'String','Status: Invalid Duration. Use number or inf.');
+
+        cleanupSerial(comStr);
+        s = [];
+        try
+            s = serialport(comStr, baudVal);
+            s.Timeout = 1.0;
+            configureTerminator(s,"LF");
+            flush(s);
+        catch ME
+            freePorts = serialportlist("available");
+            if ~any(strcmpi(strtrim(string(freePorts)), char(comStr)))
+                set(hTxtStatus,'String',sprintf('Status: %s is BUSY. Close the app holding it (terminal/LabVIEW/old MATLAB).',comStr));
+            else
+                set(hTxtStatus,'String',sprintf('Status: Failed to open %s: %s',comStr,ME.message));
+            end
+            fprintf('onStart open failed: %s\n', ME.getReport());
             return;
         end
-        if durationSec==0
-            durationSec = inf;
-        end
-    end
 
-    cleanupSerial(comStr);
-    s = [];
-    try
-        s = serialport(comStr, baudVal);
-        s.Timeout = 1.0;
-        configureTerminator(s,"LF");
-        flush(s);
+        setappdata(figCtrl,'sHandle',s);
+        setappdata(figCtrl,'isRunning',true);
+        setappdata(figCtrl,'durationSec',durationSec);
+        setappdata(figCtrl,'byteTotal',0);
+        setappdata(figCtrl,'lineTotal',0);
+        set(hTxtStatus,'String',sprintf('Status: Connected %s @ %d baud | Duration: %s | SW_LabVIEW must be ON',comStr,baudVal,durStr));
+        if ishandle(hBtnStart), set(hBtnStart,'Enable','off'); end
+        if ishandle(hBtnStop), set(hBtnStop,'Enable','on'); end
+        drawnow;
+
+        resetPlots(figCtrl);
+        runAcquisition(figCtrl);
     catch ME
-        freePorts = serialportlist("available");
-        if ~any(strcmpi(strtrim(string(freePorts)), char(comStr)))
-            set(hTxtStatus,'String',sprintf('Status: %s is BUSY. Close the app holding it (terminal/LabVIEW/old MATLAB) then Refresh.',comStr));
-        else
-            set(hTxtStatus,'String',sprintf('Status: Failed to open %s: %s',comStr,ME.message));
+        fprintf('onStart error: %s\n', ME.getReport());
+        try
+            if ishandle(hTxtStatus)
+                set(hTxtStatus,'String',sprintf('Status: Start failed: %s', ME.message));
+            end
+        catch
         end
-        return;
+        try
+            setappdata(figCtrl,'isRunning',false);
+            sTmp = getappdata(figCtrl,'sHandle');
+            if ~isempty(sTmp)
+                try, pn=sTmp.Port; cleanupSerial(pn); catch, cleanupSerial(""); end
+                setappdata(figCtrl,'sHandle',[]);
+            end
+        catch
+        end
+        try
+            if ishandle(hBtnStart), set(hBtnStart,'Enable','on'); end
+            if ishandle(hBtnStop), set(hBtnStop,'Enable','off'); end
+        catch
+        end
     end
-
-    setappdata(figCtrl,'sHandle',s);
-    setappdata(figCtrl,'isRunning',true);
-    setappdata(figCtrl,'durationSec',durationSec);
-    setappdata(figCtrl,'byteTotal',0);
-    setappdata(figCtrl,'lineTotal',0);
-    set(hTxtStatus,'String',sprintf('Status: Connected %s @ %d baud | Duration: %s | SW_LabVIEW must be ON',comStr,baudVal,durStr));
-
-    resetPlots(figCtrl);
-    runAcquisition(figCtrl);
 end
 
 function onStop()
@@ -280,6 +245,8 @@ function onStop()
     if isempty(figCtrl) || ~ishandle(figCtrl), return; end
     setappdata(figCtrl,'isRunning',false);
     hTxtStatus = getappdata(figCtrl,'hTxtStatus');
+    hBtnStart = getappdata(figCtrl,'hBtnStart');
+    hBtnStop = getappdata(figCtrl,'hBtnStop');
     s = getappdata(figCtrl,'sHandle');
     if ~isempty(s)
         try
@@ -294,6 +261,8 @@ function onStop()
         curStr = get(hTxtStatus,'String');
         set(hTxtStatus,'String',sprintf('%s | Stopped.',curStr));
     end
+    if ishandle(hBtnStart), set(hBtnStart,'Enable','on'); end
+    if ishandle(hBtnStop), set(hBtnStop,'Enable','off'); end
     fprintf('Acquisition stopped by user.\n');
 end
 
@@ -327,22 +296,22 @@ function resetPlots(figCtrl)
     lineHandles = getappdata(figCtrl,'lineHandles');
     txtHandles = getappdata(figCtrl,'txtHandles');
     for k=1:5
-        set(lineHandles{1}{k},'XData',NaN,'YData',NaN);
+        set(lineHandles{k},'XData',NaN,'YData',NaN);
     end
-    p_cells = lineHandles{1}{6};
+    p_cells = lineHandles{6};
     for c=1:10
         set(p_cells(c),'XData',NaN,'YData',NaN);
     end
-    set(txtHandles{1}{1},'String','');
-    set(txtHandles{1}{2},'String','');
-    set(txtHandles{1}{3},'String','');
-    set(txtHandles{1}{4},'String','');
-    set(txtHandles{1}{5},'String','');
-    set(txtHandles{1}{6},'String','');
+    set(txtHandles{1},'String','');
+    set(txtHandles{2},'String','');
+    set(txtHandles{3},'String','');
+    set(txtHandles{4},'String','');
+    set(txtHandles{5},'String','');
+    set(txtHandles{6},'String','');
     for k=1:6
-        if ishandle(axHandles{1}{k})
-            xlim(axHandles{1}{k},[0 10]);
-            ylim(axHandles{1}{k},'auto');
+        if ishandle(axHandles{k})
+            xlim(axHandles{k},[0 10]);
+            ylim(axHandles{k},'auto');
         end
     end
     drawnow;
@@ -357,12 +326,12 @@ function runAcquisition(figCtrl)
     fig1 = getappdata(figCtrl,'fig1');
     fig2 = getappdata(figCtrl,'fig2');
 
-    ax_total = axHandles{1}{1}; ax_soc=axHandles{1}{2}; ax_curr=axHandles{1}{3};
-    ax_temp=axHandles{1}{4}; ax_delta=axHandles{1}{5}; axCell=axHandles{1}{6};
-    p_total=lineHandles{1}{1}; p_soc=lineHandles{1}{2}; p_curr=lineHandles{1}{3};
-    p_temp=lineHandles{1}{4}; p_delta=lineHandles{1}{5}; p_cells=lineHandles{1}{6};
-    txt_total=txtHandles{1}{1}; txt_soc=txtHandles{1}{2}; txt_curr=txtHandles{1}{3};
-    txt_temp=txtHandles{1}{4}; txt_delta=txtHandles{1}{5}; txt_cells=txtHandles{1}{6};
+    ax_total = axHandles{1}; ax_soc=axHandles{2}; ax_curr=axHandles{3};
+    ax_temp=axHandles{4}; ax_delta=axHandles{5}; axCell=axHandles{6};
+    p_total=lineHandles{1}; p_soc=lineHandles{2}; p_curr=lineHandles{3};
+    p_temp=lineHandles{4}; p_delta=lineHandles{5}; p_cells=lineHandles{6};
+    txt_total=txtHandles{1}; txt_soc=txtHandles{2}; txt_curr=txtHandles{3};
+    txt_temp=txtHandles{4}; txt_delta=txtHandles{5}; txt_cells=txtHandles{6};
 
     s = getappdata(figCtrl,'sHandle');
     durationSec = getappdata(figCtrl,'durationSec');
@@ -380,15 +349,20 @@ function runAcquisition(figCtrl)
     try
     while true
         if ~ishandle(figCtrl) || ~getappdata(figCtrl,'isRunning')
+            if ~getappdata(figCtrl,'isRunning')
+                fprintf('Acquisition stopped by user (lines=%d, bytes=%d).\n', lineTotal, byteTotal);
+            end
             break;
         end
         if ~ishandle(fig1) || ~ishandle(fig2)
+            fprintf('Acquisition stopped: figure closed (lines=%d, bytes=%d).\n', lineTotal, byteTotal);
             setappdata(figCtrl,'isRunning',false);
             break;
         end
         elapsed = toc(t0);
         if isfinite(durationSec) && elapsed >= durationSec
             set(hTxtStatus,'String',sprintf('Status: Duration %.1f s reached. Stopped.',durationSec));
+            fprintf('Acquisition stopped: duration %.1f s reached (lines=%d, bytes=%d).\n', durationSec, lineTotal, byteTotal);
             setappdata(figCtrl,'isRunning',false);
             break;
         end
@@ -498,7 +472,7 @@ function runAcquisition(figCtrl)
         drawnow limitrate;
     end
     catch ME
-        fprintf('Acquisition error: %s\n', ME.message);
+        fprintf('Acquisition error: %s\n%s\n', ME.message, ME.getReport());
         if ishandle(hTxtStatus)
             set(hTxtStatus,'String',sprintf('Status: Acquisition error: %s',ME.message));
         end
@@ -516,9 +490,17 @@ function runAcquisition(figCtrl)
         setappdata(figCtrl,'sHandle',[]);
     end
     setappdata(figCtrl,'isRunning',false);
+    try
+        hBtnStart=getappdata(figCtrl,'hBtnStart');
+        hBtnStop=getappdata(figCtrl,'hBtnStop');
+        if ishandle(hBtnStart), set(hBtnStart,'Enable','on'); end
+        if ishandle(hBtnStop), set(hBtnStop,'Enable','off'); end
+    catch
+    end
     if ishandle(hTxtTimer)
         set(hTxtTimer,'String',sprintf('Elapsed: %.1f s | Stopped',toc(t0)));
     end
+    fprintf('Acquisition ended (lines=%d, bytes=%d).\n', lineTotal, byteTotal);
 end
 
 function cleanupSerial(portName)

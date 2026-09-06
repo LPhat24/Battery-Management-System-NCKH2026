@@ -997,7 +997,12 @@ static void MX_GPIO_Init(void)
 
 void Master_Balance_Control(void)
 {
+    static uint8_t balancing_active = 0;
+    static uint8_t cell_latch[15] = {0};
+
     if (!Digital_In.SW_Balancing) {
+        balancing_active = 0;
+        for (int i = 0; i < 15; i++) cell_latch[i] = 0;
         for (int s = 0; s < 3; s++) {
             if (!slave_connected[s]) continue;
             TxData_Bal[0] = 0; // enable = 0
@@ -1025,8 +1030,22 @@ void Master_Balance_Control(void)
             global_max_mV = all_cell_voltage_mV[i];
     }
 
-    // Chênh lệch <= 10mV thì không xả
-    if (global_max_mV >= global_min_mV && (global_max_mV - global_min_mV) <= 10) {
+    uint16_t delta_mV = 0;
+    if (global_min_mV != 65535 && global_max_mV >= global_min_mV)
+        delta_mV = global_max_mV - global_min_mV;
+
+    // Hysteresis window [3, 10] mV on global spread to suppress switching noise.
+    // Activate when spread exceeds 10 mV, hold until spread drops below 3 mV.
+    if (!balancing_active) {
+        if (delta_mV > 10) balancing_active = 1;
+    } else {
+        if (delta_mV < 3) {
+            balancing_active = 0;
+            for (int i = 0; i < 15; i++) cell_latch[i] = 0;
+        }
+    }
+
+    if (!balancing_active) {
         for (int s = 0; s < 3; s++) {
             if (!slave_connected[s]) continue;
             TxData_Bal[0] = 1;
@@ -1040,7 +1059,7 @@ void Master_Balance_Control(void)
         return;
     }
 
-    // Tính mask xả cho từng Slave
+    // Tính mask xả cho từng Slave - per-cell window [3, 10] mV
     for (int s = 0; s < 3; s++) {
         if (!slave_connected[s]) continue;
 
@@ -1051,14 +1070,21 @@ void Master_Balance_Control(void)
         if (temperature_max < 55.0f) {
           for (int i = 0; i < 5; i++) {
             uint16_t v_mV = all_cell_voltage_mV[base + i];
-            if (v_mV < 500) continue;
-
-            // Select any cell that is greater than the global minimum by > 10mV.
-            // Cells within 10mV of the minimum will not be selected for discharge.
-            if (v_mV > (global_min_mV + 10)) {
-              mask |= (1 << i);
+            if (v_mV < 500) {
+                cell_latch[base + i] = 0;
+                continue;
             }
+
+            // Per-cell hysteresis: latch on when >10 mV above min, off when <3 mV.
+            if (!cell_latch[base + i] && v_mV > (global_min_mV + 10)) {
+                cell_latch[base + i] = 1;
+            } else if (cell_latch[base + i] && v_mV < (global_min_mV + 3)) {
+                cell_latch[base + i] = 0;
+            }
+            if (cell_latch[base + i]) mask |= (1 << i);
           }
+        } else {
+            for (int i = 0; i < 5; i++) cell_latch[base + i] = 0;
         }
 
         TxData_Bal[0] = 1;    // enable = 1
@@ -1639,7 +1665,8 @@ void LCD_Update () {
     }
 }
 
-/* Send CSV telemetry: total,SOC,current,temp,Vmin,Vmax,deltaV,swSetting,swLoad,swBal,cell1...cell15 */
+/* Send CSV telemetry:
+ * total,SOC,current,temp,Vmin,Vmax,deltaV,swSetting,swLoad,swBal,cell1..cell15,swLabVIEW */
 void Send_Cells_UART(void)
 {
   /* Only send telemetry when LabVIEW switch is enabled */
@@ -1700,6 +1727,11 @@ void Send_Cells_UART(void)
     }
     if (len >= (int)sizeof(uart_tx_debug_buf) - 16) break; /* guard */
   }
+
+  /* Append SW_LabVIEW state as trailing field (0 = OFF, 1 = ON) so the
+   * monitor can confirm switch sensing independently of the gate above. */
+  len += snprintf(uart_tx_debug_buf + len, sizeof(uart_tx_debug_buf) - len,
+                  ",%u", (unsigned)(Digital_In.SW_LabVIEW ? 1U : 0U));
 
   /* Terminate with newline */
   if (len < (int)sizeof(uart_tx_debug_buf) - 2) uart_tx_debug_buf[len++] = '\n';
