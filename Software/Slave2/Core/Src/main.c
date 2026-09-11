@@ -107,7 +107,8 @@ uint16_t voltage_mV_f[5]  = {0};
 /* Per-cell calibration factors (real / measured) - cell1 updated from measurement */
 /* Reset calibration factors to 1.0 for re-calibration start */
 //float calib_factor[5] = {1.0183592f, 0.9952328f, 1.2535311f, 0.9963514f, 1.1682028f};
-float calib_factor[5] = {0.995100021f, 0.983099997f, 0.975899994f, 0.981100023f, 1.01549995f};
+//////float calib_factor[5] = {1.0f, 0.990429342f, 0.969185412f, 0.991242468f, 1.02840102f};
+float calib_factor[5] = {0.997676849f, 0.991999984f, 0.972432971f, 0.99048841f, 1.02329278f};
 
 /* calibration/results storage */
 
@@ -189,32 +190,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         tim_flag = 1;
 }
 
-static void take_quiet_sample(void)
-{
-  /* Quiet-window: capture one fresh DMA round with all FETs off so taps
-     read OCV. STM32F1 cannot poll per-channel inside a scan sequence
-     (PollForConversion only waits for the whole sequence and DR holds a
-     single value), so DMA is the only source that preserves the 7-channel
-     rank order (5 taps + NTC + VREFINT). */
-  HAL_ADC_Stop_DMA(&hadc1);
-  adc_ready = 0;
-  if (HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_val, ADC_CHANNEL_COUNT) != HAL_OK)
-    return;
-  uint32_t timeout = 100000u;
-  while (!adc_ready && timeout > 0u)
-    timeout--;
-  __disable_irq();
-  for (uint8_t i = 0; i < ADC_CHANNEL_COUNT; i++)
-    adc_buf[i] = adc_val[i];
-  adc_ready = 0;
-  __enable_irq();
-}
-
 void calcCellVolt(void)
 {
-  /* compute tap voltages from the latest quiet-window ADC sample (OCV). */
+  /* compute tap voltages directly from raw ADC (mV) */
   for (uint8_t i = 0; i < CELL_COUNT; i++) {
-    uint16_t raw_adc = adc_buf[i];
+    /* use averaged ADC value when available (otherwise 0 until filled) */
+    uint16_t raw_adc = last_avg_adc[i];
     tapVolt[i] = adc_raw_to_tap_mv(raw_adc, i);
   }
 
@@ -326,9 +307,9 @@ void control_balance(void)
         GPIO_PIN_11, GPIO_PIN_12
     };
 
-    if (!temp_cutoff && temperature > 40.0f)
+    if (!temp_cutoff && temperature > 60.0f)
         temp_cutoff = 1;
-    else if (temp_cutoff && temperature <= 35.0f)
+    else if (temp_cutoff && temperature < 55.0f)
         temp_cutoff = 0;
 
     if (temp_cutoff || !balance_enable) {
@@ -466,15 +447,8 @@ int main(void)
 
   }
 
-  if (tim_flag) {  
+  if (tim_flag) {
     tim_flag = 0;
-
-    /* Quiet-window: force FETs off so ADC samples are open-circuit. */
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|
-                                GPIO_PIN_11|GPIO_PIN_12, GPIO_PIN_RESET);
-    HAL_Delay(1);
-    take_quiet_sample();
-    adc_ready = 0;
 
     calcTemperature();
     calcCellVolt();

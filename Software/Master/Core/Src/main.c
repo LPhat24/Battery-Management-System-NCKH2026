@@ -39,11 +39,6 @@
 #define Fan_Control_Pin        GPIO_PIN_5
 #define Fan_Control_GPIO_Port  GPIOB
 
-/* Passive balancing thresholds (OCV, quiet-window sampled) */
-#define BAL_ON_MV             25u   /* latch on when cell > min + 25 */
-#define BAL_OFF_MV             8u   /* release when cell <= min + 8  */
-#define BAL_SPREAD_OFF_MV      6u   /* stop all masks when spread < 6 */
-
 #define CAN_ID_SLAVE1_TX        0x101U
 #define CAN_ID_SLAVE2_TX        0x102U
 #define CAN_ID_SLAVE3_TX        0x103U
@@ -1002,12 +997,6 @@ static void MX_GPIO_Init(void)
 
 void Master_Balance_Control(void)
 {
-    static uint8_t heat_cutoff = 0;
-    if (!heat_cutoff && temperature_max > 40.0f)
-        heat_cutoff = 1;
-    else if (heat_cutoff && temperature_max <= 35.0f)
-        heat_cutoff = 0;
-
     if (!Digital_In.SW_Balancing) {
         for (int s = 0; s < 3; s++) {
             if (!slave_connected[s]) continue;
@@ -1028,21 +1017,16 @@ void Master_Balance_Control(void)
     // Tìm max/min toàn hệ thống bằng số nguyên
     for (int i = 0; i < 15; i++) {
         if (all_cell_voltage_mV[i] < 500) continue; // Bỏ qua cell < 500mV (bị ngắt)
-        
+
         if (all_cell_voltage_mV[i] < global_min_mV)
             global_min_mV = all_cell_voltage_mV[i];
-            
+
         if (all_cell_voltage_mV[i] > global_max_mV)
             global_max_mV = all_cell_voltage_mV[i];
     }
 
-    uint16_t delta_mV = 0;
-    if (global_min_mV != 65535 && global_max_mV >= global_min_mV)
-        delta_mV = global_max_mV - global_min_mV;
-
-    // Global stop: hold masks until spread < BAL_SPREAD_OFF_MV. Quiet-window
-    // sampling makes measured voltages OCV, so thresholds are real values.
-    if (global_min_mV != 65535 && delta_mV < BAL_SPREAD_OFF_MV) {
+    // Chênh lệch <= 10mV thì không xả
+    if (global_max_mV >= global_min_mV && (global_max_mV - global_min_mV) <= 10) {
         for (int s = 0; s < 3; s++) {
             if (!slave_connected[s]) continue;
             TxData_Bal[0] = 1;
@@ -1056,28 +1040,24 @@ void Master_Balance_Control(void)
         return;
     }
 
-    // Tính mask xả cho từng Slave - per-cell latch BAL_ON/BAL_OFF
-    static uint8_t cell_latch[15] = {0};
+    // Tính mask xả cho từng Slave
     for (int s = 0; s < 3; s++) {
         if (!slave_connected[s]) continue;
 
         uint8_t mask = 0;
         uint8_t base = s * 5;
 
-        // BẢO VỆ MỀM CỦA MASTER: balancing chỉ khi heat_cutoff == 0 (stop >40, resume <=35)
-        if (!heat_cutoff) {
+        // BẢO VỆ MỀM CỦA MASTER: Nếu cụm pin này dưới 55 độ thì mới cho phép xả
+        if (temperature_max < 55.0f) {
           for (int i = 0; i < 5; i++) {
             uint16_t v_mV = all_cell_voltage_mV[base + i];
-            uint8_t idx = base + i;
-            if (v_mV < 500) {
-                cell_latch[idx] = 0;
-                continue;
-            }
+            if (v_mV < 500) continue;
 
-            int32_t rel = (int32_t)v_mV - (int32_t)global_min_mV;
-            if (!cell_latch[idx] && rel > (int32_t)BAL_ON_MV) cell_latch[idx] = 1;
-            else if (cell_latch[idx] && rel <= (int32_t)BAL_OFF_MV) cell_latch[idx] = 0;
-            if (cell_latch[idx]) mask |= (1 << i);
+            // Select any cell that is greater than the global minimum by > 10mV.
+            // Cells within 10mV of the minimum will not be selected for discharge.
+            if (v_mV > (global_min_mV + 10)) {
+              mask |= (1 << i);
+            }
           }
         }
 
