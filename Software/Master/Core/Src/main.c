@@ -237,6 +237,8 @@ uint8_t  tmp_frameB_mask[3];
 
 #define CELL_VALID_MIN_MV 500U
 #define CELL_VALID_MAX_MV 5000U
+#define BALANCE_START_DELTA_MV 20U
+#define BALANCE_STOP_DELTA_MV 3U
 
 /* CAN diagnostics */
 volatile uint32_t master_can_error            = 0;
@@ -997,7 +999,12 @@ static void MX_GPIO_Init(void)
 
 void Master_Balance_Control(void)
 {
+    /* Persistent per-cell hysteresis state, one bit per cell. This prevents
+       the balance FET from chattering while a cell remains in the window. */
+    static uint16_t active_cells = 0U;
+
     if (!Digital_In.SW_Balancing) {
+        active_cells = 0U;
         for (int s = 0; s < 3; s++) {
             if (!slave_connected[s]) continue;
             TxData_Bal[0] = 0; // enable = 0
@@ -1012,21 +1019,20 @@ void Master_Balance_Control(void)
     }
 
     uint16_t global_min_mV = 65535;
-    uint16_t global_max_mV = 0;
+    uint8_t valid_cell_count = 0U;
 
-    // Tìm max/min toàn hệ thống bằng số nguyên
-    for (int i = 0; i < 15; i++) {
-        if (all_cell_voltage_mV[i] < 500) continue; // Bỏ qua cell < 500mV (bị ngắt)
+    /* Find the minimum voltage across valid cells. */
+    for (int i = 0; i < TOTAL_CELLS; i++) {
+        uint16_t v_mV = all_cell_voltage_mV[i];
+        if (v_mV < CELL_VALID_MIN_MV) continue;
 
-        if (all_cell_voltage_mV[i] < global_min_mV)
-            global_min_mV = all_cell_voltage_mV[i];
-
-        if (all_cell_voltage_mV[i] > global_max_mV)
-            global_max_mV = all_cell_voltage_mV[i];
+        valid_cell_count++;
+        if (v_mV < global_min_mV)
+            global_min_mV = v_mV;
     }
 
-    // Chênh lệch <= 10mV thì không xả
-    if (global_max_mV >= global_min_mV && (global_max_mV - global_min_mV) <= 10) {
+    if (valid_cell_count == 0U) {
+        active_cells = 0U;
         for (int s = 0; s < 3; s++) {
             if (!slave_connected[s]) continue;
             TxData_Bal[0] = 1;
@@ -1040,25 +1046,40 @@ void Master_Balance_Control(void)
         return;
     }
 
-    // Tính mask xả cho từng Slave
+    /* Master soft protection: balancing is only allowed below 55 C. Clear
+       active requests while overheated so balancing restarts above 20 mV. */
+    if (temperature_max >= 55.0f) {
+        active_cells = 0U;
+    } else {
+        for (int i = 0; i < TOTAL_CELLS; i++) {
+            uint16_t v_mV = all_cell_voltage_mV[i];
+            uint16_t cell_bit = (uint16_t)(1U << i);
+
+            if (v_mV < CELL_VALID_MIN_MV) {
+                active_cells &= (uint16_t)~cell_bit;
+                continue;
+            }
+
+            if ((active_cells & cell_bit) != 0U) {
+                /* Keep balancing until this cell is strictly below the stop window. */
+                if (v_mV < (global_min_mV + BALANCE_STOP_DELTA_MV))
+                    active_cells &= (uint16_t)~cell_bit;
+            } else if (v_mV > (global_min_mV + BALANCE_START_DELTA_MV)) {
+                active_cells |= cell_bit;
+            }
+        }
+    }
+
+    // Build the discharge mask for each slave from retained hysteresis state.
     for (int s = 0; s < 3; s++) {
         if (!slave_connected[s]) continue;
 
         uint8_t mask = 0;
         uint8_t base = s * 5;
 
-        // BẢO VỆ MỀM CỦA MASTER: Nếu cụm pin này dưới 55 độ thì mới cho phép xả
-        if (temperature_max < 55.0f) {
-          for (int i = 0; i < 5; i++) {
-            uint16_t v_mV = all_cell_voltage_mV[base + i];
-            if (v_mV < 500) continue;
-
-            // Select any cell that is greater than the global minimum by > 10mV.
-            // Cells within 10mV of the minimum will not be selected for discharge.
-            if (v_mV > (global_min_mV + 10)) {
-              mask |= (1 << i);
-            }
-          }
+        for (int i = 0; i < 5; i++) {
+            if ((active_cells & (uint16_t)(1U << (base + i))) != 0U)
+                mask |= (uint8_t)(1U << i);
         }
 
         TxData_Bal[0] = 1;    // enable = 1
