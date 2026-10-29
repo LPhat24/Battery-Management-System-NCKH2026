@@ -39,6 +39,19 @@
 #define Fan_Control_Pin        GPIO_PIN_5
 #define Fan_Control_GPIO_Port  GPIOB
 
+/* Buzzer on PB15: 1 Hz (500 ms ON / 500 ms OFF), 5 cycles per alarm. */
+#define BUZZER_GPIO_PIN         GPIO_PIN_15
+#define BUZZER_GPIO_PORT        GPIOB
+#define BUZZER_ACTIVE_HIGH      1U
+#define BUZZER_ON_MS            500U
+#define BUZZER_OFF_MS           500U
+#define BUZZER_CYCLE_MS         (BUZZER_ON_MS + BUZZER_OFF_MS)
+#define BUZZER_REPEAT_COUNT     5U
+#define BUZZER_SEQUENCE_MS      (BUZZER_CYCLE_MS * BUZZER_REPEAT_COUNT)
+
+#define SAFETY_ALARM_DISCHARGE  (1U << 0)
+#define SAFETY_ALARM_CHARGE_CUT (1U << 1)
+
 #define CAN_ID_SLAVE1_TX        0x101U
 #define CAN_ID_SLAVE2_TX        0x102U
 #define CAN_ID_SLAVE3_TX        0x103U
@@ -274,7 +287,8 @@ int32_t CurrentSensor_Get_mA(void);
 void CurrentSensor_AutoCalibrate(void);
 
 /* Safety control for charge/discharge based on settings and measurements */
-void Safety_Control(void);
+uint8_t Safety_Control(void);
+void Buzzer_Update(bool alarm_active);
 
 
 void Master_Balance_Control(void);
@@ -646,7 +660,8 @@ int main(void)
     Button_Handle();
     Read_Analog_Input();
     /* Enforce charge/discharge safety after analog/settings update */
-    Safety_Control();
+    uint8_t alarm_causes = Safety_Control();
+    Buzzer_Update(alarm_causes != 0U);
     Check_Slave_Timeout();
     Fan_Control();
     LED_Status_Update();
@@ -1258,8 +1273,9 @@ void Read_Analog_Input (void) {
  * - PB14 (Charge Control, active HIGH=cut): LOW when ChargeState==0 (no charger,
  *   avoid power drain); HIGH only when ChargeState==1 and (Vmax > Vchg or I > Ichg)
  */
-void Safety_Control(void)
+uint8_t Safety_Control(void)
 {
+  uint8_t alarms = 0U;
   int32_t cur_mA = CurrentSensor_Get_mA();
 
   uint32_t Ichg_mA = (uint32_t)map(filtered_adc_ichg, 0, ADC_MAX_VALUE, 0, ICHG_MAX_MA);
@@ -1282,8 +1298,8 @@ void Safety_Control(void)
                          (cur_mA > (int32_t)Idis_mA) ||
                          (cur_mA < -(int32_t)Idis_mA);
   safety_fault = discharge_fault;
-
   if (discharge_fault) {
+    alarms |= SAFETY_ALARM_DISCHARGE;
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1,  GPIO_PIN_RESET);
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
@@ -1293,13 +1309,61 @@ void Safety_Control(void)
    * When charger not connected (ChargeState==0, PA5==1), keep LOW to avoid
    * power drain. Only assert HIGH to cut when charging is active but a
    * charge fault (overvoltage or overcurrent) exists. */
+  bool charge_cut = false;
   if (!Digital_In.ChargeState) {
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
   } else if (any_gt_vchg || (cur_mA > (int32_t)Ichg_mA)) {
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_SET);
+    charge_cut = true;
   } else {
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
   }
+  if (charge_cut) {
+    alarms |= SAFETY_ALARM_CHARGE_CUT;
+  }
+
+  return alarms;
+}
+
+static void Buzzer_Set(bool on)
+{
+#if BUZZER_ACTIVE_HIGH
+  HAL_GPIO_WritePin(BUZZER_GPIO_PORT, BUZZER_GPIO_PIN,
+                    on ? GPIO_PIN_SET : GPIO_PIN_RESET);
+#else
+  HAL_GPIO_WritePin(BUZZER_GPIO_PORT, BUZZER_GPIO_PIN,
+                    on ? GPIO_PIN_RESET : GPIO_PIN_SET);
+#endif
+}
+
+/* Sound a 1 Hz, 5-cycle alarm on each rising edge of the aggregated fault. */
+void Buzzer_Update(bool alarm_active)
+{
+  static bool     prev_alarm = false;
+  static bool     running    = false;
+  static uint32_t start_tick = 0U;
+
+  uint32_t now = HAL_GetTick();
+
+  if (alarm_active && !prev_alarm) {
+    start_tick = now;
+    running    = true;
+  }
+  prev_alarm = alarm_active;
+
+  if (!running) {
+    Buzzer_Set(false);
+    return;
+  }
+
+  uint32_t elapsed = now - start_tick;
+  if (elapsed >= BUZZER_SEQUENCE_MS) {
+    running = false;
+    Buzzer_Set(false);
+    return;
+  }
+
+  Buzzer_Set((elapsed % BUZZER_CYCLE_MS) < BUZZER_ON_MS);
 }
 
 void Fan_Control(void)
