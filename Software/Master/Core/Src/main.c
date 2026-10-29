@@ -639,13 +639,14 @@ int main(void)
   lcd_clear();
   /* Intro screen 2: advisor & students (3s) */
   lcd_send_cmd(0x80|0x01);
-  lcd_send_string("Dr. Le Thanh Phuc");
+  /* Replaced for the 2026 event banner: lcd_send_string("Dr. Le Thanh Phuc"); */
+  lcd_send_string("Eureka 2026");
   lcd_send_cmd(0x80|0x45);
   lcd_send_string("Students:");
   lcd_send_cmd(0x80|0x17);
   lcd_send_string("Pham Minh Duc");
   lcd_send_cmd(0x80|0x57);
-  lcd_send_string("Le Thanh Phuc");
+  lcd_send_string("Le Thanh Phat");
   HAL_Delay(3000);
   lcd_clear();
 
